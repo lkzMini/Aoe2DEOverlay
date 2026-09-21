@@ -66,7 +66,7 @@ dotnet publish .\Aoe2DEOverlay\Aoe2DEOverlay.csproj -c Release -r win-x64 --self
 
 Ejecutable esperado:
 
-`D:\projects\Aoe2DEOverlay\publish\AoE2DEOverlay.exe`
+`D:\projects\Aoe2DEOverlay\publish\AoE2MinimalOverlay.exe`
 
 Se prioriza el publish multi-file por confiabilidad con WPF. Copiá toda la carpeta `publish`, no solo el `.exe`.
 
@@ -109,3 +109,4 @@ No se considera probado solo por compilar. En una partida real verificá:
 - Los chips usan texto, no emblemas. Agregar assets pequeños de civ es el siguiente paso visual natural.
 - Replays single-player/formatos históricos muy antiguos pueden no contener el patrón duplicado de identidad usado por el parser focalizado moderno.
 - Hotkeys, foco y click-through requieren validación interactiva dentro de AoE2; el probe no puede probar comportamiento Win32 de usuario final.
+

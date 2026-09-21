@@ -6,6 +6,7 @@
     <StartupObject>Aoe2DEOverlay.App</StartupObject>
     <ApplicationIcon>icon.ico</ApplicationIcon>
     <PackageId>AoE2MinimalOverlay</PackageId>
+    <AssemblyName>AoE2MinimalOverlay</AssemblyName>
     <Title>AoE2 Minimal Overlay</Title>
     <Authors>lkzMini; Aoe2DEOverlay contributors</Authors>
     <Version>2.0.0</Version>
@@ -19,4 +20,5 @@
     </EmbeddedResource>
   </ItemGroup>
 </Project>
+
 
