@@ -2,8 +2,10 @@ using System.Runtime.InteropServices;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 
 namespace Aoe2DEOverlay;
 
@@ -215,10 +217,17 @@ public partial class MainWindow : Window
 
     private void DragWhenUnlocked(object sender, MouseButtonEventArgs e)
     {
-        if (!_settings.Locked && e.LeftButton == MouseButtonState.Pressed) DragMove();
+        if (!_settings.Locked && e.LeftButton == MouseButtonState.Pressed && !IsButtonSource(e.OriginalSource)) DragMove();
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
+
+    private static bool IsButtonSource(object source)
+    {
+        for (var current = source as DependencyObject; current is Visual visual; current = VisualTreeHelper.GetParent(visual))
+            if (current is Button) return true;
+        return false;
+    }
 
     private void SaveSettings()
     {
