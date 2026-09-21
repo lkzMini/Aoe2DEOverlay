@@ -132,7 +132,7 @@ public sealed class WatchRecordService : IDisposable
                 MatchDetected?.Invoke(match);
                 return;
             }
-            catch (Exception exception) when (exception is IOException or InvalidDataException or EndOfStreamException or ArgumentOutOfRangeException)
+            catch (Exception exception) when (exception is not OperationCanceledException)
             {
                 lastError = exception;
                 if (attempt == 0) AppLogger.Warning($"Replay is not ready; bounded retry started: {exception.Message}");
@@ -150,4 +150,5 @@ public sealed class WatchRecordService : IDisposable
         _watchers.Clear();
     }
 }
+
 
