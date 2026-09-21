@@ -10,7 +10,9 @@ public sealed class OverlayPlayerViewModel : INotifyPropertyChanged
     private string _record = "—";
     private string _oneVsOneRating = "—";
     private string _teamRating = "—";
-    private IReadOnlyList<string> _recentCivilizations = Array.Empty<string>();
+    private string _streak = "";
+    private Brush _streakBrush = Brushes.Gray;
+    private IReadOnlyList<CivilizationMarker> _recentCivilizations = Array.Empty<CivilizationMarker>();
 
     public required string Name { get; init; }
     public int ProfileId { get; init; }
@@ -34,7 +36,10 @@ public sealed class OverlayPlayerViewModel : INotifyPropertyChanged
     public string Record { get => _record; private set => Set(ref _record, value); }
     public string OneVsOneRating { get => _oneVsOneRating; private set => Set(ref _oneVsOneRating, value); }
     public string TeamRating { get => _teamRating; private set => Set(ref _teamRating, value); }
-    public IReadOnlyList<string> RecentCivilizations { get => _recentCivilizations; private set => Set(ref _recentCivilizations, value); }
+    public string Streak { get => _streak; private set => Set(ref _streak, value); }
+    public Brush StreakBrush { get => _streakBrush; private set => Set(ref _streakBrush, value); }
+    public bool HasStreak => !string.IsNullOrEmpty(Streak);
+    public IReadOnlyList<CivilizationMarker> RecentCivilizations { get => _recentCivilizations; private set => Set(ref _recentCivilizations, value); }
     public bool HasRecentCivilizations => RecentCivilizations.Count > 0;
 
     public void Apply(PlayerStatistics statistics)
@@ -43,7 +48,11 @@ public sealed class OverlayPlayerViewModel : INotifyPropertyChanged
         Record = statistics.DisplayWins is { } wins && statistics.DisplayLosses is { } losses ? $"{wins}W  {losses}L" : "—";
         OneVsOneRating = statistics.OneVsOneRating?.ToString() ?? "—";
         TeamRating = statistics.TeamRating?.ToString() ?? "—";
-        RecentCivilizations = statistics.RecentCivilizations;
+        RecentCivilizations = statistics.RecentCivilizations.Select(CivilizationMarker.From).ToArray();
+        var displayStreak = statistics.DisplayStreak;
+        Streak = displayStreak switch { > 0 => $"+{displayStreak}", < 0 => displayStreak!.Value.ToString(), 0 => "0", _ => "" };
+        StreakBrush = statistics.DisplayStreak switch { > 0 => new SolidColorBrush(System.Windows.Media.Color.FromRgb(105, 180, 120)), < 0 => new SolidColorBrush(System.Windows.Media.Color.FromRgb(210, 105, 105)), _ => Brushes.Gray };
+        OnPropertyChanged(nameof(HasStreak));
         OnPropertyChanged(nameof(HasRecentCivilizations));
     }
 

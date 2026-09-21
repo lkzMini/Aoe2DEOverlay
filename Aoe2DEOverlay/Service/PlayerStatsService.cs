@@ -90,6 +90,8 @@ public sealed class PlayerStatsService : IDisposable
         TeamRating = fresh.TeamRating ?? stale.TeamRating,
         TeamWins = fresh.TeamWins ?? stale.TeamWins,
         TeamLosses = fresh.TeamLosses ?? stale.TeamLosses,
+        OneVsOneStreak = fresh.OneVsOneStreak ?? stale.OneVsOneStreak,
+        TeamStreak = fresh.TeamStreak ?? stale.TeamStreak,
         RecentCivilizations = history.Succeeded && history.Civilizations.Count > 0
             ? history.Civilizations
             : stale.RecentCivilizations
@@ -134,8 +136,9 @@ public sealed class PlayerStatsService : IDisposable
                 var wins = stat.GetProperty("wins").GetInt32();
                 var losses = stat.GetProperty("losses").GetInt32() + GetOptionalInt(stat, "drops");
                 var rating = stat.GetProperty("rating").GetInt32();
-                if (leaderboardId == 3) builder.SetOneVsOne(rating, wins, losses);
-                if (leaderboardId == 4) builder.SetTeam(rating, wins, losses);
+                var streak = GetOptionalNullableInt(stat, "streak");
+                if (leaderboardId == 3) builder.SetOneVsOne(rating, wins, losses, streak);
+                if (leaderboardId == 4) builder.SetTeam(rating, wins, losses, streak);
             }
         }
         return builders.ToDictionary(pair => pair.Key, pair => pair.Value.Build());
@@ -174,7 +177,7 @@ public sealed class PlayerStatsService : IDisposable
         return matches.EnumerateArray()
             .Select(match => match.TryGetProperty("civilization", out var civilization) ? civilization.GetString() : null)
             .Where(name => !string.IsNullOrWhiteSpace(name)).Take(5)
-            .Select(name => AbbreviateCivilization(name!)).ToArray()!;
+            .Select(name => name!).ToArray()!;
     }
 
     private async Task<HttpResponseMessage> SendWithRetryAsync(Func<HttpRequestMessage> requestFactory, CancellationToken cancellationToken)
@@ -204,7 +207,7 @@ public sealed class PlayerStatsService : IDisposable
         exception is TaskCanceledException && !cancellationToken.IsCancellationRequested;
     private static bool IsTransient(HttpStatusCode statusCode) => statusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests || (int)statusCode >= 500;
     private static int GetOptionalInt(JsonElement element, string name) => element.TryGetProperty(name, out var value) ? value.GetInt32() : 0;
-    private static string AbbreviateCivilization(string name) => new(name.Where(char.IsLetter).Take(3).Select(char.ToUpperInvariant).ToArray());
+    private static int? GetOptionalNullableInt(JsonElement element, string name) => element.TryGetProperty(name, out var value) ? value.GetInt32() : null;
 
     public void Dispose()
     {
@@ -231,13 +234,13 @@ public sealed class PlayerStatsService : IDisposable
 
     private sealed class StatisticsBuilder(int profileId)
     {
-        private int? _oneVsOneRating, _oneVsOneWins, _oneVsOneLosses, _teamRating, _teamWins, _teamLosses;
-        public void SetOneVsOne(int rating, int wins, int losses) => (_oneVsOneRating, _oneVsOneWins, _oneVsOneLosses) = (rating, wins, losses);
-        public void SetTeam(int rating, int wins, int losses) => (_teamRating, _teamWins, _teamLosses) = (rating, wins, losses);
+        private int? _oneVsOneRating, _oneVsOneWins, _oneVsOneLosses, _oneVsOneStreak, _teamRating, _teamWins, _teamLosses, _teamStreak;
+        public void SetOneVsOne(int rating, int wins, int losses, int? streak) => (_oneVsOneRating, _oneVsOneWins, _oneVsOneLosses, _oneVsOneStreak) = (rating, wins, losses, streak);
+        public void SetTeam(int rating, int wins, int losses, int? streak) => (_teamRating, _teamWins, _teamLosses, _teamStreak) = (rating, wins, losses, streak);
         public PlayerStatistics Build() => new()
         {
             ProfileId = profileId, OneVsOneRating = _oneVsOneRating, OneVsOneWins = _oneVsOneWins,
-            OneVsOneLosses = _oneVsOneLosses, TeamRating = _teamRating, TeamWins = _teamWins, TeamLosses = _teamLosses
+            OneVsOneLosses = _oneVsOneLosses, TeamRating = _teamRating, TeamWins = _teamWins, TeamLosses = _teamLosses, OneVsOneStreak = _oneVsOneStreak, TeamStreak = _teamStreak
         };
     }
 }

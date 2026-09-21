@@ -10,7 +10,8 @@ Por cada jugador detectado automáticamente en el último `.aoe2record`:
 - winrate y victorias/derrotas (1v1 RM; Team RM como fallback);
 - Elo 1v1 Random Map;
 - Elo Team Random Map;
-- las últimas cinco civilizaciones (chips de texto).
+- las últimas cinco civilizaciones mediante marcadores vectoriales locales;
+- streak de leaderboard (1v1 RM y Team RM como fallback).
 - slot de partida y color real de AoE2.
 
 En partidas por equipos el listado se agrupa por el team extraído del replay y, dentro de cada grupo, se ordena por slot. El badge `[slot]` usa el color real del jugador (Blue, Red, Green, Yellow, Cyan, Purple, Gray u Orange), sin inferir el team a partir del color.
@@ -22,6 +23,12 @@ Los campos no disponibles se muestran como `—`. El overlay no necesita conocer
 Cada jugador usa una unidad de dos líneas de aproximadamente **45 px**: una fila principal y una segunda línea mínima para los cinco chips de civilización, que se colapsa por completo cuando no hay historial. El badge, nick, `1v1`, `TG` y `WR · W/L` comparten la misma fila; el nick se recorta con elipsis cuando hace falta, sin ensanchar la ventana. El ancho se ajusta al contenido dentro de un rango de **450–540 px** (antes era fijo en 570 px).
 
 Los jugadores se agrupan explícitamente por el valor de `team` extraído del replay. Cada sección muestra un header discreto `TEAM N · X players`, con una línea tenue y un gap de 5 px entre equipos; dentro de cada sección el orden siempre es por slot ascendente. No se infiere equipo por color y no se etiqueta ally/enemy porque el perfil local no se identifica de forma fiable. En FFA (`team = 0`) se usa el label neutral `PLAYERS`, no el engañoso `TEAM 0`. Un mock 4v4 de ocho jugadores muestra `TEAM 1` (slots 1/3/5/7) y `TEAM 2` (2/4/6/8) para revisar la agrupación con `--mock`.
+
+## Marcadores de civilización y streak
+
+Los chips de texto se reemplazaron por **marcadores vectoriales abstractos de 22×18 px**, empaquetados offline en `Aoe2DEOverlay/Assets/Civilizations/CivEmblems.xaml`. Son 42 mapeos para las civilizaciones canónicas que el parser identifica (IDs 1–42), incluida la alias `Bohemian`/`Bohemians`. No son ni pretenden ser arte oficial de AoE2. Fueron creados para este proyecto y se liberan bajo CC0-1.0; la declaración exacta está en `Assets/Civilizations/LICENSE`. No se copió arte de juegos, instalaciones locales ni forks sin licencia. Si llega una civilización nueva o un nombre no mapeado, se muestra su abreviatura textual en lugar del marcador.
+
+El streak viene directamente del campo `streak` de `getPersonalStat`: se muestra el de leaderboard 3 (1v1 RM) cuando el perfil tiene historial 1v1, o el de leaderboard 4 (Team RM) como fallback. No se calcula a partir del historial de partidas. Positivo aparece `+N` en verde discreto, negativo `-N` en rojo, cero en gris y el dato ausente queda oculto.
 
 ## Cómo funciona
 
@@ -78,7 +85,7 @@ Ejecutable esperado:
 
 `D:\projects\Aoe2DEOverlay\publish\AoE2MinimalOverlay.exe`
 
-Se prioriza el publish multi-file por confiabilidad con WPF. Copiá toda la carpeta `publish`, no solo el `.exe`.
+Se prioriza el publish multi-file por confiabilidad con WPF. Copiá toda la carpeta `publish`, no solo el `.exe`. El publish self-contained actual ocupa aproximadamente **160 MB**; el pack vectorial está compilado en el ensamblado y añade un archivo de licencia de menos de 1 KB.
 
 ## Validar el parser
 
@@ -123,6 +130,6 @@ No se considera probado solo por compilar. En una partida real verificá:
 ## Limitaciones conocidas
 
 - Las APIs oficiales usadas son endpoints no documentados; ante caída se conservan jugadores y se muestran `—`.
-- Los chips usan texto, no emblemas. Agregar assets pequeños de civ es el siguiente paso visual natural.
+- Los marcadores son abstractos y no oficiales; una civilización desconocida conserva fallback textual.
 - Replays single-player/formatos históricos muy antiguos pueden no contener el patrón duplicado de identidad usado por el parser focalizado moderno.
 - Hotkeys, foco y click-through requieren validación interactiva dentro de AoE2; el probe no puede probar comportamiento Win32 de usuario final.

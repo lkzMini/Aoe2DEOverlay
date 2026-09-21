@@ -9,10 +9,13 @@ public sealed record PlayerStatistics
     public int? TeamRating { get; init; }
     public int? TeamWins { get; init; }
     public int? TeamLosses { get; init; }
+    public int? OneVsOneStreak { get; init; }
+    public int? TeamStreak { get; init; }
     public IReadOnlyList<string> RecentCivilizations { get; init; } = Array.Empty<string>();
 
     public int? DisplayWins => HasOneVsOneHistory ? OneVsOneWins : TeamWins;
     public int? DisplayLosses => HasOneVsOneHistory ? OneVsOneLosses : TeamLosses;
+    public int? DisplayStreak => HasOneVsOneHistory ? OneVsOneStreak : TeamStreak;
     public bool HasOneVsOneHistory => (OneVsOneWins ?? 0) + (OneVsOneLosses ?? 0) > 0;
     public int? WinRate
     {

@@ -18,5 +18,6 @@
     <EmbeddedResource Include="icon.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
+    <Content Include="Assets\Civilizations\LICENSE"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
   </ItemGroup>
 </Project>
