@@ -1,101 +1,111 @@
-<div align="center">
-<img src="docs/img/icon.png" style="width: 128px;" />
+# AoE2 Minimal Overlay
 
-# Aoe2DEOverlay
+Overlay nativo de Windows, minimalista y semitransparente para **Age of Empires II: Definitive Edition**. Es una modernización del proyecto original [Aoe2DEOverlay](https://github.com/kickass-panda/Aoe2DEOverlay), cuya licencia MIT y atribución se conservan en [`LICENSE`](LICENSE).
 
-Age of Empires 2 Definitive Edition Overlay  
+## Qué muestra
 
-![screenshot](docs/img/example-screenshot.png)
+Por cada jugador detectado automáticamente en el último `.aoe2record`:
 
-</div>
+- nick;
+- winrate y victorias/derrotas (1v1 RM; Team RM como fallback);
+- Elo 1v1 Random Map;
+- Elo Team Random Map;
+- las últimas cinco civilizaciones (chips de texto).
 
+Los campos no disponibles se muestran como `—`. El overlay no necesita conocer manualmente el nick del rival.
 
-## Install Overlay
+## Cómo funciona
 
-For an easy installation the latest version can be downloaded from github [releases](https://github.com/kickass-panda/Aoe2DEOverlay/releases).
-There is a x64 (64-bit CPU) or x86 (32-bit CPU) version.
-Unzip the file and copy the folder to a desired location (no installation needed).
+1. `WatchRecordService` descubre las carpetas `%USERPROFILE%\Games\Age of Empires 2 DE\<id>\savegame\`.
+2. Observa `Created`, `Renamed` y `Changed`, elige el replay más reciente y aplica debounce.
+3. Reutiliza el lector DEFLATE y la estructura del parser original. El lector focalizado del header extrae nick, profile ID, civilización, slot, color y team sin reescribir el formato completo.
+4. Un replay parseado correctamente no vuelve a procesarse por cada escritura. Solo se procesa otro path de replay o un refresh manual. Un archivo aún incompleto tiene cinco intentos acotados (0/1/2/4/8 s).
+5. `PlayerStatsService` consulta infraestructura oficial de World's Edge:
+   - ratings/W-L: `aoe-api.worldsedgelink.com/.../getPersonalStat`, leaderboards 3 y 4;
+   - civilizaciones recientes: `api.ageofempires.com/api/GameStats/AgeII/GetMatchList`.
 
-## Start
+Estas APIs son públicas pero no documentadas y no ofrecen SLA. No se usa `aoe2.net`; sus endpoints antiguos devolvían 404 durante la migración. El cliente tiene timeout de 10 s, retry solo para timeout/408/429/5xx, caché por profile ID de 15 minutos y stale-if-error de hasta 24 horas en la sesión.
 
-Run the `Aoe2DEOverlay.exe` to start the overlay. Now the last or currently playing match is automatically displayed. The update can sometimes take a few seconds after the match start. 
+## Ejecutar
 
-## Layouting
+Requiere Windows 10/11 para compilar. El publish self-contained no requiere instalar .NET en la máquina de destino.
 
-By default it is displayed in the top center. You can adjust the `horizontal` alignment by set the `left`, `right`, or `center` values in the `setting.json`. For the `vertical` alignment you can use the values `top`, `bottom`, or `center`.
+```powershell
+dotnet restore
+dotnet build -c Release
+dotnet run -c Release --project .\Aoe2DEOverlay\Aoe2DEOverlay.csproj
+```
 
-Example:
+Modo visual sin AoE2 ni red:
 
-    "vertical": "top",
-    "horizontal": "center",
+```powershell
+dotnet run -c Release --project .\Aoe2DEOverlay\Aoe2DEOverlay.csproj -- --mock
+```
 
-Example:
+### Hotkeys globales
 
-    "bottom": 50,
-    "right": 700,
+| Hotkey | Acción |
+|---|---|
+| `Ctrl + Shift + O` | Lock / unlock. Locked activa click-through Win32 real. |
+| `Ctrl + Shift + H` | Mostrar / ocultar. |
+| `Ctrl + Shift + R` | Releer el último replay y forzar refresh de stats. |
 
+Al desbloquear aparece un indicador discreto `UNLOCKED` y se puede arrastrar la ventana. Posición, opacidad, estado locked y hidden se guardan en:
 
-## Formatting
+`%LOCALAPPDATA%\AoE2MinimalOverlay\settings.json`
 
-### Player Raiting
+Logs acotados:
 
-It automatically detects if the match is RM or EW and loads the correct data for `1v1` and `team` accordingly.
+`%LOCALAPPDATA%\AoE2MinimalOverlay\logs\overlay-YYYYMMDD.log`
 
-It is possible to display differently format for 1v1 (`format1v1`) or team (`formatTeam`) matches.
+## Publicar
 
-Example:
+```powershell
+dotnet publish .\Aoe2DEOverlay\Aoe2DEOverlay.csproj -c Release -r win-x64 --self-contained true -o .\publish
+```
 
-    "format1v1": "<{country}> [E:{1v1.elo} W:{1v1.rate} S:{1v1.streak} G:{1v1.games}]",
-    "formatTeam": "{name} <{country}> [E:{1v1.elo} T:{team.elo}])",
+Ejecutable esperado:
 
-| Placeholder     | Description                                                     |
-| :-------------- | :-------------------------------------------------------------- |
-| `{slot}`        | The match slot of the player                                    |
-| `{name}`        | Name of the player                                              |
-| `{country}`     | Country of the player                                           |
-| `{civ}`         | Civilisation the player plays                                   |
-| `{1v1.rank}`    | The leaderboard 1v1 rank position of the player                 |
-| `{1v1.elo}`     | The 1v1 elo points of the player                                |
-| `{1v1.rate}`    | The 1v1 win rate of the player                                  |
-| `{1v1.streak}`  | The 1v1 streak of wining or loosing matches of the player       |
-| `{1v1.games}`   | The number of 1v1 matches the player has played                 |
-| `{1v1.wins}`    | The number of 1v1 matches the player has won                    |
-| `{1v1.losses}`  | The number of 1v1 matches the player has lost                   |
-| `{team.rank}`   | The leaderboard team game rank position of the player           |
-| `{team.elo}`    | The team game elo points of the player                          |
-| `{team.rate}`   | The team game win rate of the player                            |
-| `{team.streak}` | The team game streak of wining or loosing matches of the player |
-| `{team.games}`  | The number of team matches the player has played                |
-| `{team.wins}`   | The number of team matches the player has won                   |
-| `{team.losses}` | The number of team matches the player has lost                  |
+`D:\projects\Aoe2DEOverlay\publish\AoE2DEOverlay.exe`
 
+Se prioriza el publish multi-file por confiabilidad con WPF. Copiá toda la carpeta `publish`, no solo el `.exe`.
 
-### Match Info
+## Validar el parser
 
-Example:
+El probe usa un replay local; no incluye ni sube replays del usuario:
 
-    server: {
-        "format": "s: {server} m: {mode.name}",
-    }
+```powershell
+dotnet run -c Release --project .\tools\ReplayProbe\ReplayProbe.csproj
+```
 
-| Placeholder     | Description                                                                                        |
-| :-------------- | :------------------------------------------------------------------------------------------------- |
-| `{server.key}`  | The game server id of the match (example: `"eastus"`)                                              |
-| `{server.name}` | The game server name of the match (example: `"US (East)"`)                                         |
-| `{mode.name}`   | The mode name of the match Unranked, Deathmatch, Random Map, Empire Wars                           |
-| `{mode.short}`  | The mode short name of the match UR (Unranked), DM (Deathmatch), RM (Random Map), EW (Empire Wars) |
-| `{map.name}`    | The name of the current map played                                                                 |
-| `{ranked}`      | Show if the match is `Ranked` or `Unranked`                                                        |
+Para validar también las APIs:
 
-## Theming
+```powershell
+dotnet run -c Release --project .\tools\ReplayProbe\ReplayProbe.csproj -- --stats
+```
 
-The player and also the panel colours can be customised in the `setting.json`.
-The color can set to `backgroundColor`, `borderColor`, `player1Color`, …, `player8Color`.
-For RGB color use hex like `#3C78FF` (Red: `3C`, Green: `78`, Blue: `FF`).
-For RGBA color use hex like `#BB000000` (Alpha: `BB` Red: `00`, Green: `00`, Blue: `00`).  
+También acepta un path específico como argumento.
 
-## Credits
+## Auditoría y decisiones de migración
 
-- The aoe2recrod reader is a own reimplementation in C# based on [aoc-mgz](https://github.com/happyleavesaoc/aoc-mgz).
-- The Elo data are taken from the api of the website [aoe2.net](https://aoe2.net).
+Se preservaron el descubrimiento automático de savegames, `FileSystemWatcher`, lectura con `FileShare.ReadWrite`, selección del archivo más reciente, descompresión del header y extracción local de jugadores/profile IDs. Se corrigió el uso original de `HOMEPATH` (podía omitir la unidad) y el offset obsoleto de jugadores para replays actuales.
 
+Se eliminaron AppCenter Analytics/Crashes, telemetría, splash, updater/UpdateManager, scripts de release antiguos, settings de UI obsoletos, vistas originales y Newtonsoft.Json. El proyecto ahora usa .NET 8 WPF y `System.Text.Json` sin dependencias NuGet externas.
+
+## Validación manual dentro de una partida
+
+No se considera probado solo por compilar. En una partida real verificá:
+
+1. que al crearse el nuevo `MP Replay ...aoe2record` pase de `Reading match…` a todos los jugadores correctos;
+2. que nick/profile IDs/teams del log coincidan con el lobby;
+3. que el archivo no se reprocese repetidamente mientras crece;
+4. que `Ctrl+Shift+O` deje pasar el mouse al juego cuando está locked y permita arrastrar cuando está unlocked;
+5. que `Ctrl+Shift+H` no robe el foco de AoE2 y `Ctrl+Shift+R` actualice una sola vez;
+6. que posición y estados sobrevivan al reinicio y el scaling sea legible a 1080p/4K.
+
+## Limitaciones conocidas
+
+- Las APIs oficiales usadas son endpoints no documentados; ante caída se conservan jugadores y se muestran `—`.
+- Los chips usan texto, no emblemas. Agregar assets pequeños de civ es el siguiente paso visual natural.
+- Replays single-player/formatos históricos muy antiguos pueden no contener el patrón duplicado de identidad usado por el parser focalizado moderno.
+- Hotkeys, foco y click-through requieren validación interactiva dentro de AoE2; el probe no puede probar comportamiento Win32 de usuario final.
