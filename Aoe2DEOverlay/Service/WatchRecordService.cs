@@ -6,11 +6,16 @@ namespace Aoe2DEOverlay;
 public sealed class WatchRecordService : IDisposable
 {
     private static readonly TimeSpan DebounceDelay = TimeSpan.FromMilliseconds(900);
+    private static readonly TimeSpan DiscoveryInterval = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan[] RetryDelays = { TimeSpan.Zero, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4), TimeSpan.FromSeconds(8) };
-    private readonly List<FileSystemWatcher> _watchers = new();
+    private readonly Dictionary<string, FileSystemWatcher> _watchers = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _gate = new();
+    private readonly string _basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Games", "Age of Empires 2 DE");
     private CancellationTokenSource? _pending;
+    private System.Threading.Timer? _discoveryTimer;
     private string? _parsedReplayPath;
+    private bool _rootMissingLogged;
+    private bool _disposed;
 
     public event Action<string>? StateChanged;
     public event Action<Match>? MatchDetected;
@@ -18,36 +23,8 @@ public sealed class WatchRecordService : IDisposable
 
     public void Start()
     {
-        var basePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Games", "Age of Empires 2 DE");
-        if (!Directory.Exists(basePath))
-        {
-            AppLogger.Warning($"AoE2 save root not found: {basePath}");
-            StateChanged?.Invoke("AoE2 · waiting for match");
-            return;
-        }
-
-        SaveGameDirectories = Directory.EnumerateDirectories(basePath)
-            .Where(path => !string.Equals(Path.GetFileName(path), "0", StringComparison.OrdinalIgnoreCase))
-            .Select(path => Path.Combine(path, "savegame"))
-            .Where(Directory.Exists)
-            .ToArray();
-
-        foreach (var saveDirectory in SaveGameDirectories)
-        {
-            var watcher = new FileSystemWatcher(saveDirectory, "*.aoe2record")
-            {
-                NotifyFilter = NotifyFilters.FileName | NotifyFilters.CreationTime | NotifyFilters.LastWrite | NotifyFilters.Size,
-                IncludeSubdirectories = false,
-                EnableRaisingEvents = true
-            };
-            watcher.Created += OnReplayChanged;
-            watcher.Changed += OnReplayChanged;
-            watcher.Renamed += OnReplayChanged;
-            watcher.Error += (_, args) => AppLogger.Error("Replay watcher error", args.GetException());
-            _watchers.Add(watcher);
-        }
-
-        AppLogger.Info($"Watching {SaveGameDirectories.Count} savegame director{(SaveGameDirectories.Count == 1 ? "y" : "ies")}: {string.Join("; ", SaveGameDirectories)}");
+        RediscoverSaveDirectories();
+        _discoveryTimer = new System.Threading.Timer(_ => RediscoverSaveDirectories(), null, DiscoveryInterval, DiscoveryInterval);
         StateChanged?.Invoke("AoE2 · waiting for match");
         ScheduleLatest(TimeSpan.FromMilliseconds(300));
     }
@@ -56,7 +33,100 @@ public sealed class WatchRecordService : IDisposable
     {
         lock (_gate) _parsedReplayPath = null;
         AppLogger.Info("Manual refresh requested");
+        RediscoverSaveDirectories();
         ScheduleLatest(TimeSpan.Zero);
+    }
+
+    private void RediscoverSaveDirectories()
+    {
+        if (_disposed) return;
+        try
+        {
+            if (!Directory.Exists(_basePath))
+            {
+                if (!_rootMissingLogged)
+                {
+                    AppLogger.Warning($"AoE2 save root not found; discovery will retry: {_basePath}");
+                    _rootMissingLogged = true;
+                }
+                UpdateDirectorySnapshot(Array.Empty<string>());
+                return;
+            }
+
+            _rootMissingLogged = false;
+            var discovered = Directory.EnumerateDirectories(_basePath)
+                .Where(path => !string.Equals(Path.GetFileName(path), "0", StringComparison.OrdinalIgnoreCase))
+                .Select(path => Path.Combine(path, "savegame"))
+                .Where(Directory.Exists)
+                .ToArray();
+
+            var addedAny = false;
+            lock (_gate)
+            {
+                foreach (var missing in _watchers.Keys.Except(discovered, StringComparer.OrdinalIgnoreCase).ToArray())
+                {
+                    _watchers[missing].Dispose();
+                    _watchers.Remove(missing);
+                }
+
+                foreach (var saveDirectory in discovered)
+                {
+                    if (_watchers.ContainsKey(saveDirectory)) continue;
+                    _watchers[saveDirectory] = CreateWatcher(saveDirectory);
+                    addedAny = true;
+                }
+                SaveGameDirectories = discovered;
+            }
+
+            if (addedAny)
+            {
+                AppLogger.Info($"Watching {discovered.Length} savegame director{(discovered.Length == 1 ? "y" : "ies")}: {string.Join("; ", discovered)}");
+                ScheduleLatest(TimeSpan.FromMilliseconds(300));
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            AppLogger.Error("Savegame directory discovery failed; it will retry", exception);
+        }
+    }
+
+    private void UpdateDirectorySnapshot(IReadOnlyList<string> directories)
+    {
+        lock (_gate)
+        {
+            foreach (var watcher in _watchers.Values) watcher.Dispose();
+            _watchers.Clear();
+            SaveGameDirectories = directories;
+        }
+    }
+
+    private FileSystemWatcher CreateWatcher(string saveDirectory)
+    {
+        var watcher = new FileSystemWatcher(saveDirectory, "*.aoe2record")
+        {
+            NotifyFilter = NotifyFilters.FileName | NotifyFilters.CreationTime | NotifyFilters.LastWrite | NotifyFilters.Size,
+            IncludeSubdirectories = false
+        };
+        watcher.Created += OnReplayChanged;
+        watcher.Changed += OnReplayChanged;
+        watcher.Renamed += OnReplayChanged;
+        watcher.Error += OnWatcherError;
+        watcher.EnableRaisingEvents = true;
+        return watcher;
+    }
+
+    private void OnWatcherError(object sender, ErrorEventArgs args)
+    {
+        AppLogger.Error("Replay watcher error; rebuilding watchers", args.GetException());
+        if (sender is FileSystemWatcher failedWatcher)
+        {
+            lock (_gate)
+            {
+                if (_watchers.Remove(failedWatcher.Path)) failedWatcher.Dispose();
+            }
+        }
+        RediscoverSaveDirectories();
+        ScheduleLatest(TimeSpan.FromMilliseconds(300));
     }
 
     private void OnReplayChanged(object sender, FileSystemEventArgs args)
@@ -67,6 +137,7 @@ public sealed class WatchRecordService : IDisposable
 
     private void ScheduleLatest(TimeSpan delay)
     {
+        if (_disposed) return;
         CancellationToken token;
         lock (_gate)
         {
@@ -93,11 +164,24 @@ public sealed class WatchRecordService : IDisposable
         }, token);
     }
 
-    private string? FindLatestReplay() => SaveGameDirectories
-        .SelectMany(path => Directory.EnumerateFiles(path, "*.aoe2record", SearchOption.TopDirectoryOnly))
-        .Select(path => new FileInfo(path))
-        .OrderByDescending(file => file.LastWriteTimeUtc)
-        .FirstOrDefault()?.FullName;
+    private string? FindLatestReplay()
+    {
+        string[] directories;
+        lock (_gate) directories = SaveGameDirectories.ToArray();
+        var files = new List<FileInfo>();
+        foreach (var directory in directories)
+        {
+            try
+            {
+                files.AddRange(Directory.EnumerateFiles(directory, "*.aoe2record", SearchOption.TopDirectoryOnly).Select(path => new FileInfo(path)));
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or DirectoryNotFoundException)
+            {
+                AppLogger.Warning($"Could not scan savegame directory {directory}: {exception.Message}");
+            }
+        }
+        return files.OrderByDescending(file => file.LastWriteTimeUtc).FirstOrDefault()?.FullName;
+    }
 
     private async Task ReadWithRetriesAsync(string replayPath, CancellationToken cancellationToken)
     {
@@ -145,10 +229,14 @@ public sealed class WatchRecordService : IDisposable
 
     public void Dispose()
     {
-        lock (_gate) { _pending?.Cancel(); _pending?.Dispose(); }
-        foreach (var watcher in _watchers) watcher.Dispose();
-        _watchers.Clear();
+        _disposed = true;
+        _discoveryTimer?.Dispose();
+        lock (_gate)
+        {
+            _pending?.Cancel();
+            _pending?.Dispose();
+            foreach (var watcher in _watchers.Values) watcher.Dispose();
+            _watchers.Clear();
+        }
     }
 }
-
-
