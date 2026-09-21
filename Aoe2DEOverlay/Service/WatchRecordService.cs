@@ -23,15 +23,27 @@ public sealed class WatchRecordService : IDisposable
 
     public void Start()
     {
+        lock (_gate)
+        {
+            if (_disposed) return;
+        }
         RediscoverSaveDirectories();
-        _discoveryTimer = new System.Threading.Timer(_ => RediscoverSaveDirectories(), null, DiscoveryInterval, DiscoveryInterval);
+        lock (_gate)
+        {
+            if (_disposed) return;
+            _discoveryTimer = new System.Threading.Timer(_ => RediscoverSaveDirectories(), null, DiscoveryInterval, DiscoveryInterval);
+        }
         StateChanged?.Invoke("AoE2 · waiting for match");
         ScheduleLatest(TimeSpan.FromMilliseconds(300));
     }
 
     public void Refresh()
     {
-        lock (_gate) _parsedReplayPath = null;
+        lock (_gate)
+        {
+            if (_disposed) return;
+            _parsedReplayPath = null;
+        }
         AppLogger.Info("Manual refresh requested");
         RediscoverSaveDirectories();
         ScheduleLatest(TimeSpan.Zero);
@@ -44,16 +56,18 @@ public sealed class WatchRecordService : IDisposable
         {
             if (!Directory.Exists(_basePath))
             {
-                if (!_rootMissingLogged)
+                var shouldLog = false;
+                lock (_gate)
                 {
-                    AppLogger.Warning($"AoE2 save root not found; discovery will retry: {_basePath}");
+                    if (_disposed) return;
+                    shouldLog = !_rootMissingLogged;
                     _rootMissingLogged = true;
                 }
+                if (shouldLog) AppLogger.Warning($"AoE2 save root not found; discovery will retry: {_basePath}");
                 UpdateDirectorySnapshot(Array.Empty<string>());
                 return;
             }
 
-            _rootMissingLogged = false;
             var discovered = Directory.EnumerateDirectories(_basePath)
                 .Where(path => !string.Equals(Path.GetFileName(path), "0", StringComparison.OrdinalIgnoreCase))
                 .Select(path => Path.Combine(path, "savegame"))
@@ -63,6 +77,8 @@ public sealed class WatchRecordService : IDisposable
             var addedAny = false;
             lock (_gate)
             {
+                if (_disposed) return;
+                _rootMissingLogged = false;
                 foreach (var missing in _watchers.Keys.Except(discovered, StringComparer.OrdinalIgnoreCase).ToArray())
                 {
                     _watchers[missing].Dispose();
@@ -94,6 +110,7 @@ public sealed class WatchRecordService : IDisposable
     {
         lock (_gate)
         {
+            if (_disposed) return;
             foreach (var watcher in _watchers.Values) watcher.Dispose();
             _watchers.Clear();
             SaveGameDirectories = directories;
@@ -117,20 +134,22 @@ public sealed class WatchRecordService : IDisposable
 
     private void OnWatcherError(object sender, ErrorEventArgs args)
     {
-        AppLogger.Error("Replay watcher error; rebuilding watchers", args.GetException());
         if (sender is FileSystemWatcher failedWatcher)
         {
             lock (_gate)
             {
+                if (_disposed) return;
                 if (_watchers.Remove(failedWatcher.Path)) failedWatcher.Dispose();
             }
         }
+        AppLogger.Error("Replay watcher error; rebuilding watchers", args.GetException());
         RediscoverSaveDirectories();
         ScheduleLatest(TimeSpan.FromMilliseconds(300));
     }
 
     private void OnReplayChanged(object sender, FileSystemEventArgs args)
     {
+        lock (_gate) if (_disposed) return;
         AppLogger.Info($"Replay event {args.ChangeType}: {Path.GetFileName(args.FullPath)}");
         ScheduleLatest(DebounceDelay);
     }
@@ -141,6 +160,7 @@ public sealed class WatchRecordService : IDisposable
         CancellationToken token;
         lock (_gate)
         {
+            if (_disposed) return;
             _pending?.Cancel();
             _pending?.Dispose();
             _pending = new CancellationTokenSource();
@@ -167,7 +187,11 @@ public sealed class WatchRecordService : IDisposable
     private string? FindLatestReplay()
     {
         string[] directories;
-        lock (_gate) directories = SaveGameDirectories.ToArray();
+        lock (_gate)
+        {
+            if (_disposed) return null;
+            directories = SaveGameDirectories.ToArray();
+        }
         var files = new List<FileInfo>();
         foreach (var directory in directories)
         {
@@ -185,6 +209,7 @@ public sealed class WatchRecordService : IDisposable
 
     private async Task ReadWithRetriesAsync(string replayPath, CancellationToken cancellationToken)
     {
+        lock (_gate) if (_disposed) return;
         StateChanged?.Invoke("Reading match…");
         AppLogger.Info($"Replay detected: {replayPath}");
         Exception? lastError = null;
@@ -211,7 +236,11 @@ public sealed class WatchRecordService : IDisposable
                     IsMultiplayer = record.IsMultiplayer,
                     Players = players
                 };
-                lock (_gate) _parsedReplayPath = replayPath;
+                lock (_gate)
+                {
+                    if (_disposed) return;
+                    _parsedReplayPath = replayPath;
+                }
                 AppLogger.Info($"Replay parsed: {players.Length} players; {string.Join(", ", players.Select(player => $"{player.Name} ({player.Id}) team {player.Team}"))}");
                 MatchDetected?.Invoke(match);
                 return;
@@ -223,20 +252,23 @@ public sealed class WatchRecordService : IDisposable
             }
         }
 
+        lock (_gate) if (_disposed) return;
         AppLogger.Error($"Replay parse failed after {RetryDelays.Length} attempts: {replayPath}", lastError);
         StateChanged?.Invoke("AoE2 · waiting for match");
     }
 
     public void Dispose()
     {
-        _disposed = true;
-        _discoveryTimer?.Dispose();
         lock (_gate)
         {
+            if (_disposed) return;
+            _disposed = true;
+            _discoveryTimer?.Dispose();
             _pending?.Cancel();
             _pending?.Dispose();
             foreach (var watcher in _watchers.Values) watcher.Dispose();
             _watchers.Clear();
+            SaveGameDirectories = Array.Empty<string>();
         }
     }
 }

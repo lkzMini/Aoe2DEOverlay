@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -199,7 +200,7 @@ public sealed class PlayerStatsService : IDisposable
     }
 
     private static bool IsRecoverableStatsFailure(Exception exception, CancellationToken cancellationToken) =>
-        exception is HttpRequestException or JsonException or InvalidOperationException or KeyNotFoundException or FormatException ||
+        exception is HttpRequestException or IOException or JsonException or InvalidOperationException or KeyNotFoundException or FormatException ||
         exception is TaskCanceledException && !cancellationToken.IsCancellationRequested;
     private static bool IsTransient(HttpStatusCode statusCode) => statusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests || (int)statusCode >= 500;
     private static int GetOptionalInt(JsonElement element, string name) => element.TryGetProperty(name, out var value) ? value.GetInt32() : 0;

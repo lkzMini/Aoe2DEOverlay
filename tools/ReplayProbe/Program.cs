@@ -55,9 +55,11 @@ static async Task<int> RunCacheProbeAsync()
     var player = new Player { Id = 42, Name = "Cache Probe" };
     var first = (await service.GetAsync(new[] { player }))[42];
     var second = (await service.GetAsync(new[] { player }, forceRefresh: true))[42];
-    var passed = first.OneVsOneRating == 1500 && second.OneVsOneRating == 1500 &&
+    var third = (await service.GetAsync(new[] { player }, forceRefresh: true))[42];
+    var passed = first.OneVsOneRating == 1500 && second.OneVsOneRating == 1500 && third.OneVsOneRating == 1500 &&
                  first.RecentCivilizations.SequenceEqual(new[] { "MAY" }) &&
-                 second.RecentCivilizations.SequenceEqual(new[] { "MAY" });
+                 second.RecentCivilizations.SequenceEqual(new[] { "MAY" }) &&
+                 third.RecentCivilizations.SequenceEqual(new[] { "MAY" });
     Console.WriteLine($"Partial-response stale cache probe: {(passed ? "PASS" : "FAIL")}");
     return passed ? 0 : 1;
 }
@@ -72,10 +74,12 @@ sealed class PartialFailureHandler : HttpMessageHandler
         if (request.Method == HttpMethod.Get)
         {
             _ratingRequests++;
-            var json = _ratingRequests == 1
-                ? "{\"statGroups\":[{\"id\":7,\"members\":[{\"profile_id\":42}]}],\"leaderboardStats\":[{\"statgroup_id\":7,\"leaderboard_id\":3,\"wins\":6,\"losses\":4,\"drops\":0,\"rating\":1500}]}"
-                : "{\"statGroups\":[],\"leaderboardStats\":[]}";
-            return Task.FromResult(JsonResponse(HttpStatusCode.OK, json));
+            if (_ratingRequests == 1)
+                return Task.FromResult(JsonResponse(HttpStatusCode.OK,
+                    "{\"statGroups\":[{\"id\":7,\"members\":[{\"profile_id\":42}]}],\"leaderboardStats\":[{\"statgroup_id\":7,\"leaderboard_id\":3,\"wins\":6,\"losses\":4,\"drops\":0,\"rating\":1500}]}"));
+            if (_ratingRequests == 2)
+                return Task.FromResult(JsonResponse(HttpStatusCode.OK, "{\"statGroups\":[],\"leaderboardStats\":[]}"));
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ThrowingContent() });
         }
 
         _historyRequests++;
@@ -88,4 +92,16 @@ sealed class PartialFailureHandler : HttpMessageHandler
     {
         Content = new StringContent(json, Encoding.UTF8, "application/json")
     };
+}
+
+sealed class ThrowingContent : HttpContent
+{
+    protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
+        Task.FromException(new IOException("Simulated response-body interruption"));
+
+    protected override bool TryComputeLength(out long length)
+    {
+        length = 0;
+        return false;
+    }
 }
