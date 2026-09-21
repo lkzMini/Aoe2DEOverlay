@@ -1,5 +1,0 @@
-Civilization marker pack
-========================
-All vector markers in this directory were created for AoE2 Minimal Overlay and are released under CC0-1.0. They are abstract geometric markers, not official Age of Empires, World's Edge, Microsoft, Relic, or community-fork artwork. No game files, screenshots, or third-party assets were copied.
-
-The compiled WPF resource dictionary is packaged with the application. CivilizationMarker.cs maps canonical names for parser IDs 1–42 and aliases Bohemian/Bohemians; unknown/new names use textual fallback.

@@ -56,7 +56,7 @@
                         <TextBlock Text="{Binding Name}" Foreground="#F2F4F7" FontSize="16" FontWeight="SemiBold"
                                    TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                     </DockPanel>
-                    <ItemsControl ItemsSource="{Binding RecentCivilizations}" Margin="30,1,0,0" Height="18">
+                    <ItemsControl ItemsSource="{Binding RecentCivilizations}" Margin="30,1,0,0" Height="24">
                         <ItemsControl.Style>
                             <Style TargetType="ItemsControl">
                                 <Style.Triggers>
@@ -71,11 +71,11 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Grid Width="22" Height="18" Margin="0,0,4,0" ToolTip="{Binding Name}">
+                                <Grid Width="24" Height="24" Margin="0,0,4,0" ToolTip="{Binding Name}">
                                     <Border Background="#262B32" BorderBrush="#404751" BorderThickness="1" CornerRadius="3"/>
-                                    <Path Data="{Binding Geometry}" Fill="#D6DBE2" Stretch="Uniform" Margin="5,3" ToolTip="{Binding Name}">
-                                        <Path.Style><Style TargetType="Path"><Style.Triggers><DataTrigger Binding="{Binding HasEmblem}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Path.Style>
-                                    </Path>
+                                    <Image Source="{Binding ImagePath}" Stretch="Uniform" Margin="1" ToolTip="{Binding Name}">
+                                        <Image.Style><Style TargetType="Image"><Style.Triggers><DataTrigger Binding="{Binding HasEmblem}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Image.Style>
+                                    </Image>
                                     <TextBlock Text="{Binding Code}" Foreground="#D6DBE2" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center">
                                         <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasEmblem}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                                     </TextBlock>
