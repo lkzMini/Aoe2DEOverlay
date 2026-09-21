@@ -17,6 +17,7 @@ public sealed class OverlayPlayerViewModel : INotifyPropertyChanged
     public int Slot { get; init; }
     public int Color { get; init; }
     public int Team { get; init; }
+    public bool ShowTeamSeparator { get; set; }
     public Brush SlotBadgeBrush => Color switch
     {
         1 => new SolidColorBrush(System.Windows.Media.Color.FromRgb(54, 122, 219)),

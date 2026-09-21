@@ -17,6 +17,10 @@ En partidas por equipos el listado se agrupa por el team extraído del replay y,
 
 Los campos no disponibles se muestran como `—`. El overlay no necesita conocer manualmente el nick del rival.
 
+## Layout HUD compacto
+
+Cada jugador usa una fila principal de aproximadamente **45 px** y una segunda línea mínima para los cinco chips de civilización. El badge, nick, `1v1`, `TG` y `WR · W/L` comparten la misma fila; el nick se recorta con elipsis cuando hace falta, sin ensanchar la ventana. El ancho se ajusta al contenido dentro de un rango de **450–540 px** (antes era fijo en 570 px) y solo hay una separación sutil cuando cambia el team. Un mock 4v4 de ocho jugadores permite revisar densidad, colores, orden y chips con `--mock`.
+
 ## Cómo funciona
 
 1. `WatchRecordService` descubre las carpetas `%USERPROFILE%\Games\Age of Empires 2 DE\<id>\savegame\`.

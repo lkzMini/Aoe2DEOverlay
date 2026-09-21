@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private HwndSource? _windowSource;
     private nint _windowHandle;
     private bool _forceStatsRefresh;
+    private bool _mockMode;
 
     public MainWindow()
     {
@@ -48,7 +49,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(CancelEventArgs e)
     {
-        SaveSettings();
+        if (!_mockMode) SaveSettings();
         UnregisterGlobalHotkeys();
         _windowSource?.RemoveHook(WindowMessageHook);
         _statsCancellation?.Cancel();
@@ -60,8 +61,9 @@ public partial class MainWindow : Window
 
     private void Start()
     {
-        if (_settings.Hidden) Hide();
-        if (Environment.GetCommandLineArgs().Contains("--mock", StringComparer.OrdinalIgnoreCase))
+        _mockMode = Environment.GetCommandLineArgs().Contains("--mock", StringComparer.OrdinalIgnoreCase);
+        if (_settings.Hidden && !_mockMode) Hide();
+        if (_mockMode)
         {
             ShowMockData();
             return;
@@ -74,15 +76,21 @@ public partial class MainWindow : Window
         Dispatcher.Invoke(() =>
         {
             _players.Clear();
+            int? previousTeam = null;
             foreach (var player in match.Players.Where(player => !player.IsAi).OrderBy(player => player.Team).ThenBy(player => player.Slot))
-                _players.Add(new OverlayPlayerViewModel
+            {
+                var viewModel = new OverlayPlayerViewModel
                 {
                     Name = player.Name,
                     ProfileId = player.Id,
                     Slot = player.Slot,
                     Color = player.Color,
-                    Team = player.Team
-                });
+                    Team = player.Team,
+                    ShowTeamSeparator = previousTeam is not null && previousTeam != player.Team
+                };
+                _players.Add(viewModel);
+                previousTeam = player.Team;
+            }
             StatusText.Visibility = Visibility.Collapsed;
         });
 
@@ -252,11 +260,13 @@ public partial class MainWindow : Window
             new { Name = "Vinchester", ProfileId = 7, Slot = 7, Color = 7, Team = 2, OneVsOne = 2148, TeamRating = 1682, Wins = 97, Losses = 69, Civs = new[] { "RUS", "MAG", "LIT", "BUL", "CUM" } },
             new { Name = "MbL", ProfileId = 8, Slot = 8, Color = 8, Team = 2, OneVsOne = 2056, TeamRating = 1594, Wins = 82, Losses = 73, Civs = new[] { "GOT", "CEL", "FRA", "HUN", "MAL" } }
         };
+        int? previousTeam = null;
         foreach (var sample in samples)
         {
             var player = new OverlayPlayerViewModel
             {
-                Name = sample.Name, ProfileId = sample.ProfileId, Slot = sample.Slot, Color = sample.Color, Team = sample.Team
+                Name = sample.Name, ProfileId = sample.ProfileId, Slot = sample.Slot, Color = sample.Color, Team = sample.Team,
+                ShowTeamSeparator = previousTeam is not null && previousTeam != sample.Team
             };
             player.Apply(new PlayerStatistics
             {
@@ -264,6 +274,7 @@ public partial class MainWindow : Window
                 OneVsOneWins = sample.Wins, OneVsOneLosses = sample.Losses, RecentCivilizations = sample.Civs
             });
             _players.Add(player);
+            previousTeam = sample.Team;
         }
         StatusText.Visibility = Visibility.Collapsed;
     }
