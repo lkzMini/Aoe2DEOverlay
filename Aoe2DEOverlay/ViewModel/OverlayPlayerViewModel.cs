@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Windows.Media;
 
 namespace Aoe2DEOverlay;
 
@@ -13,6 +14,22 @@ public sealed class OverlayPlayerViewModel : INotifyPropertyChanged
 
     public required string Name { get; init; }
     public int ProfileId { get; init; }
+    public int Slot { get; init; }
+    public int Color { get; init; }
+    public int Team { get; init; }
+    public Brush SlotBadgeBrush => Color switch
+    {
+        1 => new SolidColorBrush(System.Windows.Media.Color.FromRgb(54, 122, 219)),
+        2 => new SolidColorBrush(System.Windows.Media.Color.FromRgb(210, 76, 76)),
+        3 => new SolidColorBrush(System.Windows.Media.Color.FromRgb(80, 166, 91)),
+        4 => new SolidColorBrush(System.Windows.Media.Color.FromRgb(226, 196, 66)),
+        5 => new SolidColorBrush(System.Windows.Media.Color.FromRgb(57, 190, 199)),
+        6 => new SolidColorBrush(System.Windows.Media.Color.FromRgb(164, 99, 199)),
+        7 => new SolidColorBrush(System.Windows.Media.Color.FromRgb(151, 158, 168)),
+        8 => new SolidColorBrush(System.Windows.Media.Color.FromRgb(222, 142, 68)),
+        _ => new SolidColorBrush(System.Windows.Media.Color.FromRgb(91, 98, 108))
+    };
+    public Brush SlotBadgeForeground => Color is 4 or 5 or 7 or 8 ? Brushes.Black : Brushes.White;
     public string WinRate { get => _winRate; private set => Set(ref _winRate, value); }
     public string Record { get => _record; private set => Set(ref _record, value); }
     public string OneVsOneRating { get => _oneVsOneRating; private set => Set(ref _oneVsOneRating, value); }

@@ -11,6 +11,9 @@ Por cada jugador detectado automáticamente en el último `.aoe2record`:
 - Elo 1v1 Random Map;
 - Elo Team Random Map;
 - las últimas cinco civilizaciones (chips de texto).
+- slot de partida y color real de AoE2.
+
+En partidas por equipos el listado se agrupa por el team extraído del replay y, dentro de cada grupo, se ordena por slot. El badge `[slot]` usa el color real del jugador (Blue, Red, Green, Yellow, Cyan, Purple, Gray u Orange), sin inferir el team a partir del color.
 
 Los campos no disponibles se muestran como `—`. El overlay no necesita conocer manualmente el nick del rival.
 
@@ -49,8 +52,9 @@ dotnet run -c Release --project .\Aoe2DEOverlay\Aoe2DEOverlay.csproj -- --mock
 | `Ctrl + Shift + O` | Lock / unlock. Locked activa click-through Win32 real. |
 | `Ctrl + Shift + H` | Mostrar / ocultar. |
 | `Ctrl + Shift + R` | Releer el último replay y forzar refresh de stats. |
+| `Ctrl + Shift + Q` | Cerrar completamente el overlay. |
 
-Al desbloquear aparece un indicador discreto `UNLOCKED` y se puede arrastrar la ventana. Posición, opacidad, estado locked y hidden se guardan en:
+Al desbloquear aparece un indicador discreto `UNLOCKED`, un botón `×` para cerrar y se puede arrastrar la ventana desde la barra superior. El botón de cierre no inicia un drag. Al cerrar, se guardan settings, se detienen watchers y requests, y se liberan hotkeys. Posición, opacidad, estado locked y hidden se guardan en:
 
 `%LOCALAPPDATA%\AoE2MinimalOverlay\settings.json`
 
@@ -106,8 +110,9 @@ No se considera probado solo por compilar. En una partida real verificá:
 2. que nick/profile IDs/teams del log coincidan con el lobby;
 3. que el archivo no se reprocese repetidamente mientras crece;
 4. que `Ctrl+Shift+O` deje pasar el mouse al juego cuando está locked y permita arrastrar cuando está unlocked;
-5. que `Ctrl+Shift+H` no robe el foco de AoE2 y `Ctrl+Shift+R` actualice una sola vez;
-6. que posición y estados sobrevivan al reinicio y el scaling sea legible a 1080p/4K.
+5. que los slots, colores y agrupación por team coincidan con el lobby;
+6. que `Ctrl+Shift+H` no robe el foco de AoE2, `Ctrl+Shift+R` actualice una sola vez y `Ctrl+Shift+Q` cierre el proceso;
+7. que posición y estados sobrevivan al reinicio y el scaling sea legible a 1080p/4K.
 
 ## Limitaciones conocidas
 

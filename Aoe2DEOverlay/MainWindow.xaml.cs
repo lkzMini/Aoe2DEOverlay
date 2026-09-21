@@ -12,6 +12,7 @@ public partial class MainWindow : Window
     private const int ToggleLockHotkey = 1;
     private const int ToggleVisibilityHotkey = 2;
     private const int RefreshHotkey = 3;
+    private const int QuitHotkey = 4;
     private readonly ObservableCollection<OverlayPlayerViewModel> _players = new();
     private readonly WatchRecordService _watcher = new();
     private readonly PlayerStatsService _stats = new();
@@ -31,7 +32,6 @@ public partial class MainWindow : Window
         _watcher.StateChanged += SetStatus;
         _watcher.MatchDetected += MatchDetected;
         Loaded += (_, _) => Start();
-        MouseLeftButtonDown += DragWhenUnlocked;
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -72,8 +72,15 @@ public partial class MainWindow : Window
         Dispatcher.Invoke(() =>
         {
             _players.Clear();
-            foreach (var player in match.Players.Where(player => !player.IsAi))
-                _players.Add(new OverlayPlayerViewModel { Name = player.Name, ProfileId = player.Id });
+            foreach (var player in match.Players.Where(player => !player.IsAi).OrderBy(player => player.Team).ThenBy(player => player.Slot))
+                _players.Add(new OverlayPlayerViewModel
+                {
+                    Name = player.Name,
+                    ProfileId = player.Id,
+                    Slot = player.Slot,
+                    Color = player.Color,
+                    Team = player.Team
+                });
             StatusText.Visibility = Visibility.Collapsed;
         });
 
@@ -126,7 +133,7 @@ public partial class MainWindow : Window
         Opacity = Math.Clamp(_settings.Opacity, 0.35, 1);
         Left = IsVisibleCoordinate(_settings.X, SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenWidth) ? _settings.X : 24;
         Top = IsVisibleCoordinate(_settings.Y, SystemParameters.VirtualScreenTop, SystemParameters.VirtualScreenHeight) ? _settings.Y : 24;
-        UnlockedIndicator.Visibility = _settings.Locked ? Visibility.Collapsed : Visibility.Visible;
+        UpdateUnlockedControls();
     }
 
     private static bool IsVisibleCoordinate(double value, double origin, double length) => !double.IsNaN(value) && value >= origin - 100 && value <= origin + length - 40;
@@ -138,7 +145,13 @@ public partial class MainWindow : Window
         style |= NativeMethods.WsExNoActivate | NativeMethods.WsExToolWindow;
         style = _settings.Locked ? style | NativeMethods.WsExTransparent : style & ~NativeMethods.WsExTransparent;
         NativeMethods.SetWindowLongPtr(_windowHandle, NativeMethods.GwlExStyle, style);
+        UpdateUnlockedControls();
+    }
+
+    private void UpdateUnlockedControls()
+    {
         UnlockedIndicator.Visibility = _settings.Locked ? Visibility.Collapsed : Visibility.Visible;
+        CloseButton.Visibility = _settings.Locked ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void RegisterGlobalHotkeys()
@@ -146,6 +159,7 @@ public partial class MainWindow : Window
         RegisterHotkey(ToggleLockHotkey, 0x4F, "Ctrl+Shift+O");
         RegisterHotkey(ToggleVisibilityHotkey, 0x48, "Ctrl+Shift+H");
         RegisterHotkey(RefreshHotkey, 0x52, "Ctrl+Shift+R");
+        RegisterHotkey(QuitHotkey, 0x51, "Ctrl+Shift+Q");
     }
 
     private void RegisterHotkey(int id, uint virtualKey, string label)
@@ -160,6 +174,7 @@ public partial class MainWindow : Window
         NativeMethods.UnregisterHotKey(_windowHandle, ToggleLockHotkey);
         NativeMethods.UnregisterHotKey(_windowHandle, ToggleVisibilityHotkey);
         NativeMethods.UnregisterHotKey(_windowHandle, RefreshHotkey);
+        NativeMethods.UnregisterHotKey(_windowHandle, QuitHotkey);
     }
 
     private nint WindowMessageHook(nint hwnd, int message, nint wParam, nint lParam, ref bool handled)
@@ -171,6 +186,7 @@ public partial class MainWindow : Window
             case ToggleLockHotkey: ToggleLock(); break;
             case ToggleVisibilityHotkey: ToggleVisibility(); break;
             case RefreshHotkey: RefreshOverlay(); break;
+            case QuitHotkey: Close(); break;
         }
         return 0;
     }
@@ -202,6 +218,8 @@ public partial class MainWindow : Window
         if (!_settings.Locked && e.LeftButton == MouseButtonState.Pressed) DragMove();
     }
 
+    private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
+
     private void SaveSettings()
     {
         if (!double.IsNaN(Left)) _settings.X = Left;
@@ -216,16 +234,25 @@ public partial class MainWindow : Window
         _players.Clear();
         var samples = new[]
         {
-            ("Hera", 2612, 1548, 124, 61, new[] { "MAY", "MON", "HUN", "VIK", "CHI" }),
-            ("Liereyy", 2580, 1602, 91, 58, new[] { "ETH", "MAL", "MON", "HIN", "FRA" })
+            new { Name = "Gualord", ProfileId = 1, Slot = 1, Color = 1, Team = 1, OneVsOne = 939, TeamRating = 1039, Wins = 70, Losses = 65, Civs = new[] { "PER", "VIK", "HUN", "MAY", "BER" } },
+            new { Name = "Hera", ProfileId = 2, Slot = 2, Color = 2, Team = 1, OneVsOne = 2612, TeamRating = 1548, Wins = 124, Losses = 61, Civs = new[] { "MAY", "MON", "HUN", "VIK", "CHI" } },
+            new { Name = "Liereyy", ProfileId = 3, Slot = 3, Color = 3, Team = 1, OneVsOne = 2580, TeamRating = 1602, Wins = 91, Losses = 58, Civs = new[] { "ETH", "MAL", "MON", "HIN", "FRA" } },
+            new { Name = "Yo", ProfileId = 4, Slot = 4, Color = 4, Team = 1, OneVsOne = 1784, TeamRating = 1640, Wins = 88, Losses = 72, Civs = new[] { "BRI", "JAP", "SAR", "BYZ", "TEU" } },
+            new { Name = "Viper", ProfileId = 5, Slot = 5, Color = 5, Team = 2, OneVsOne = 2475, TeamRating = 1778, Wins = 118, Losses = 54, Civs = new[] { "NOR", "POL", "BUR", "INC", "AZT" } },
+            new { Name = "TaToH", ProfileId = 6, Slot = 6, Color = 6, Team = 2, OneVsOne = 2301, TeamRating = 1711, Wins = 109, Losses = 66, Civs = new[] { "SPA", "POR", "TUR", "KOR", "SLA" } },
+            new { Name = "Vinchester", ProfileId = 7, Slot = 7, Color = 7, Team = 2, OneVsOne = 2148, TeamRating = 1682, Wins = 97, Losses = 69, Civs = new[] { "RUS", "MAG", "LIT", "BUL", "CUM" } },
+            new { Name = "MbL", ProfileId = 8, Slot = 8, Color = 8, Team = 2, OneVsOne = 2056, TeamRating = 1594, Wins = 82, Losses = 73, Civs = new[] { "GOT", "CEL", "FRA", "HUN", "MAL" } }
         };
         foreach (var sample in samples)
         {
-            var player = new OverlayPlayerViewModel { Name = sample.Item1, ProfileId = 1 };
+            var player = new OverlayPlayerViewModel
+            {
+                Name = sample.Name, ProfileId = sample.ProfileId, Slot = sample.Slot, Color = sample.Color, Team = sample.Team
+            };
             player.Apply(new PlayerStatistics
             {
-                ProfileId = 1, OneVsOneRating = sample.Item2, TeamRating = sample.Item3,
-                OneVsOneWins = sample.Item4, OneVsOneLosses = sample.Item5, RecentCivilizations = sample.Item6
+                ProfileId = sample.ProfileId, OneVsOneRating = sample.OneVsOne, TeamRating = sample.TeamRating,
+                OneVsOneWins = sample.Wins, OneVsOneLosses = sample.Losses, RecentCivilizations = sample.Civs
             });
             _players.Add(player);
         }
