@@ -1,5 +1,10 @@
+using System.Net;
+using System.Text;
 using Aoe2DEOverlay;
 using ReadAoe2Recrod;
+
+if (args.Contains("--cache-probe", StringComparer.OrdinalIgnoreCase))
+    return await RunCacheProbeAsync();
 
 var includeStats = args.Contains("--stats", StringComparer.OrdinalIgnoreCase);
 var path = args.FirstOrDefault(arg => !arg.StartsWith("--", StringComparison.Ordinal));
@@ -36,11 +41,51 @@ try
             Console.WriteLine($"stats profile={player.Id} 1v1={stat.OneVsOneRating} TG={stat.TeamRating} WR={stat.WinRate}% W/L={stat.DisplayWins}/{stat.DisplayLosses} civs={string.Join(',', stat.RecentCivilizations)}");
         }
     }
-
     return record.Players.Length > 0 ? 0 : 1;
 }
 catch (Exception exception)
 {
     Console.Error.WriteLine($"Validation failed: {exception.Message}");
     return 1;
+}
+
+static async Task<int> RunCacheProbeAsync()
+{
+    using var service = new PlayerStatsService(new PartialFailureHandler());
+    var player = new Player { Id = 42, Name = "Cache Probe" };
+    var first = (await service.GetAsync(new[] { player }))[42];
+    var second = (await service.GetAsync(new[] { player }, forceRefresh: true))[42];
+    var passed = first.OneVsOneRating == 1500 && second.OneVsOneRating == 1500 &&
+                 first.RecentCivilizations.SequenceEqual(new[] { "MAY" }) &&
+                 second.RecentCivilizations.SequenceEqual(new[] { "MAY" });
+    Console.WriteLine($"Partial-response stale cache probe: {(passed ? "PASS" : "FAIL")}");
+    return passed ? 0 : 1;
+}
+
+sealed class PartialFailureHandler : HttpMessageHandler
+{
+    private int _ratingRequests;
+    private int _historyRequests;
+
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        if (request.Method == HttpMethod.Get)
+        {
+            _ratingRequests++;
+            var json = _ratingRequests == 1
+                ? "{\"statGroups\":[{\"id\":7,\"members\":[{\"profile_id\":42}]}],\"leaderboardStats\":[{\"statgroup_id\":7,\"leaderboard_id\":3,\"wins\":6,\"losses\":4,\"drops\":0,\"rating\":1500}]}"
+                : "{\"statGroups\":[],\"leaderboardStats\":[]}";
+            return Task.FromResult(JsonResponse(HttpStatusCode.OK, json));
+        }
+
+        _historyRequests++;
+        return Task.FromResult(_historyRequests == 1
+            ? JsonResponse(HttpStatusCode.OK, "{\"matchList\":[{\"civilization\":\"Mayans\"}]}")
+            : JsonResponse(HttpStatusCode.InternalServerError, "{}"));
+    }
+
+    private static HttpResponseMessage JsonResponse(HttpStatusCode statusCode, string json) => new(statusCode)
+    {
+        Content = new StringContent(json, Encoding.UTF8, "application/json")
+    };
 }

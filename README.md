@@ -84,6 +84,12 @@ Para validar también las APIs:
 dotnet run -c Release --project .\tools\ReplayProbe\ReplayProbe.csproj -- --stats
 ```
 
+Para probar que un refresh parcial no borre ratings/civilizaciones stale válidas:
+
+```powershell
+dotnet run -c Release --project .\tools\ReplayProbe\ReplayProbe.csproj -- --cache-probe
+```
+
 También acepta un path específico como argumento.
 
 ## Auditoría y decisiones de migración
@@ -109,4 +115,5 @@ No se considera probado solo por compilar. En una partida real verificá:
 - Los chips usan texto, no emblemas. Agregar assets pequeños de civ es el siguiente paso visual natural.
 - Replays single-player/formatos históricos muy antiguos pueden no contener el patrón duplicado de identidad usado por el parser focalizado moderno.
 - Hotkeys, foco y click-through requieren validación interactiva dentro de AoE2; el probe no puede probar comportamiento Win32 de usuario final.
+
 

@@ -102,6 +102,16 @@ public partial class MainWindow : Window
             });
         }
         catch (OperationCanceledException) { }
+        catch (Exception exception)
+        {
+            AppLogger.Error("Unexpected player stats failure", exception);
+            await Dispatcher.InvokeAsync(() =>
+            {
+                if (_players.Count == 0) return;
+                StatusText.Text = "Stats unavailable · replay data shown";
+                StatusText.Visibility = Visibility.Visible;
+            });
+        }
     }
 
     private void SetStatus(string status) => Dispatcher.Invoke(() =>
@@ -222,4 +232,5 @@ public partial class MainWindow : Window
         StatusText.Visibility = Visibility.Collapsed;
     }
 }
+
 
