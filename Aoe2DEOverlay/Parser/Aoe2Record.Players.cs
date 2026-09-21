@@ -113,5 +113,3 @@ public sealed class RecordPlayer
     public uint TypeId { get; init; }
     public bool IsAi => ProfileId == 0;
 }
-
-

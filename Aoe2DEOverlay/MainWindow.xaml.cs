@@ -232,5 +232,3 @@ public partial class MainWindow : Window
         StatusText.Visibility = Visibility.Collapsed;
     }
 }
-
-
