@@ -6,8 +6,8 @@ namespace ReadAoe2Recrod
 {
     public partial class Aoe2Record
     {
-        public string Difficulty;
-        public string MapName;
+        public string Difficulty = "";
+        public string MapName = "";
         public int MapType;
         public bool IsMultiplayer;
         public bool IsRanked;

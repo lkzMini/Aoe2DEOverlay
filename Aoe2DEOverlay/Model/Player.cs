@@ -1,17 +1,12 @@
-﻿namespace Aoe2DEOverlay
+namespace Aoe2DEOverlay;
+
+public sealed class Player
 {
-    public class Player
-    {
-        public int Id;
-        public bool IsAi => Id == 0;
-        public int Slot;
-        public int Color;
-        public string Name = "";
-        public string Country = "";
-        public string Civ = "";
-        public Raiting RM1v1 = new Raiting();
-        public Raiting RMTeam = new Raiting();
-        public Raiting EW1v1 = new Raiting();
-        public Raiting EWTeam = new Raiting();
-    }
+    public int Id { get; init; }
+    public bool IsAi => Id == 0;
+    public int Slot { get; init; }
+    public int Color { get; init; }
+    public int Team { get; init; }
+    public string Name { get; init; } = "";
+    public string Civ { get; init; } = "Unknown";
 }

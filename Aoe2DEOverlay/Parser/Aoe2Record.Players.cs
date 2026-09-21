@@ -1,72 +1,117 @@
-using System;
-using System.Collections.Generic;
 using System.IO;
 
-namespace ReadAoe2Recrod
+namespace ReadAoe2Recrod;
+
+public partial class Aoe2Record
 {
-    public partial class Aoe2Record
+    public RecordPlayer[] Players = Array.Empty<RecordPlayer>();
+
+    private void ReadPlayers(BinaryReader reader)
     {
-        public RecordPlayer[] Players = Array.Empty<RecordPlayer>();
-        
-        private void ReadPlayers(BinaryReader reader)
+        var data = ((MemoryStream)reader.BaseStream).ToArray();
+        var start = 0;
+        var end = Math.Min(data.Length, start + 64 * 1024);
+        var players = new Dictionary<int, RecordPlayer>();
+
+        for (var index = start; index < end - 24; index++)
         {
-            var players = new List<RecordPlayer>(8); 
-            for (int i = 0; i < 8; i++)
+            if (!TryReadDeString(data, index, end, out var firstName, out var secondStart) || string.IsNullOrWhiteSpace(firstName))
+                continue;
+            if (!TryReadDeString(data, secondStart, end, out var secondName, out var metadataStart) || firstName != secondName)
+                continue;
+            if (metadataStart + 16 > end)
+                continue;
+
+            var typeId = BitConverter.ToUInt32(data, metadataStart);
+            var profileId = BitConverter.ToUInt32(data, metadataStart + 4);
+            var slot = BitConverter.ToInt32(data, metadataStart + 12);
+            if (typeId > 6 || slot is < 1 or > 8 || typeId == 1)
+                continue;
+
+            var preamble = FindPlayerPreamble(data, index, start);
+            if (preamble < 0)
+                continue;
+
+            var color = BitConverter.ToInt32(data, preamble - 4) + 1;
+            var team = data[preamble + 2];
+            var civId = BitConverter.ToUInt32(data, preamble + 12);
+            if (civId > 128)
+                civId = 0;
+
+            players[slot] = new RecordPlayer
             {
-                var player = new RecordPlayer();
-                var dlcId  = reader.ReadUInt32();
-                var colorId = reader.ReadInt32();
-                player.Color = colorId + 1;
-                var selectedColor  = reader.ReadByte();
-                var selectedTeamId  = reader.ReadByte();
-                var resolvedTeamId  = reader.ReadByte();
-                var datCrc = reader.ReadBytes(8);
-                var mpGameVersion  = reader.ReadByte();
-                var civId  = reader.ReadUInt32();
-                player.Civ = ParseCiv(civId);
-                var aiType = DEString(reader);
-                var aiCiv_name_index = reader.ReadByte();
-                var aiName = DEString(reader);
-                var name = DEString(reader);
-                player.Name = name.Length > 0 ? name : aiName;
-                var typeId = reader.ReadUInt32();
-                var type = ParseType(typeId);
-                player.ProfileId = reader.ReadUInt32();
-                Padding(reader, 4);
-                player.Slot = reader.ReadInt32();
-                
-                Padding(reader, 10);  // since aoe2 patch January 31 2022 (Update 58259)
-                
-                if(typeId != 1 /* is not closed */ ) players.Add(player);
-            }
-            Players = players.ToArray();
+                Slot = slot,
+                Color = color,
+                Team = team,
+                Name = firstName,
+                Civ = ParseCiv(civId),
+                ProfileId = profileId,
+                TypeId = typeId
+            };
         }
-        public string ParseType(uint id)
-        {
-            if (id == 0) return "Absent";
-            if (id == 1) return "Closed";
-            if (id == 2) return "Human";
-            if (id == 3) return "Eliminated";
-            if (id == 4) return "Computer";
-            if (id == 5) return "Cyborg";
-            if (id == 6) return "Spectator";
-            return "Unknown";
-        }
-        
-        public string ParseCiv(uint id)
-        {
-            return Aoe2Mapper.ParseCiv(id);
-        }
+
+        Players = players.Values.OrderBy(player => player.Slot).ToArray();
+        if (Players.Length == 0)
+            throw new InvalidDataException("No player records were found in the replay header.");
     }
 
-    public class RecordPlayer
+    private static bool TryReadDeString(byte[] data, int index, int end, out string value, out int next)
     {
-        public int Slot;
-        public int Color;
-        public string Name;
-        public string Civ;
-        public uint ProfileId;
-        public bool IsAi => ProfileId == 0;
+        value = "";
+        next = index;
+        if (index + 4 > end || data[index] != 0x60 || data[index + 1] != 0x0A)
+            return false;
 
+        var length = BitConverter.ToUInt16(data, index + 2);
+        next = index + 4 + length;
+        if (next > end || length > 512)
+            return false;
+
+        value = System.Text.Encoding.UTF8.GetString(data, index + 4, length);
+        return true;
     }
+
+    private static int FindPlayerPreamble(byte[] data, int nameStart, int lowerBound)
+    {
+        for (var index = nameStart - 3; index >= Math.Max(lowerBound + 8, nameStart - 512); index--)
+        {
+            if (data[index] != 0xFF || data[index + 1] > 8 || data[index + 2] > 8)
+                continue;
+
+            var dlcId = BitConverter.ToUInt32(data, index - 8);
+            var color = BitConverter.ToInt32(data, index - 4);
+            if (dlcId <= 100 && color is >= -1 and <= 7)
+                return index;
+        }
+
+        return -1;
+    }
+
+    public string ParseType(uint id) => id switch
+    {
+        0 => "Absent",
+        1 => "Closed",
+        2 => "Human",
+        3 => "Eliminated",
+        4 => "Computer",
+        5 => "Cyborg",
+        6 => "Spectator",
+        _ => "Unknown"
+    };
+
+    public string ParseCiv(uint id) => Aoe2Mapper.ParseCiv(id);
 }
+
+public sealed class RecordPlayer
+{
+    public int Slot { get; init; }
+    public int Color { get; init; }
+    public int Team { get; init; }
+    public string Name { get; init; } = "";
+    public string Civ { get; init; } = "Unknown";
+    public uint ProfileId { get; init; }
+    public uint TypeId { get; init; }
+    public bool IsAi => ProfileId == 0;
+}
+
+

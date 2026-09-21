@@ -12,7 +12,6 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <PublishSingleFile>false</PublishSingleFile>
-    <SelfContained>true</SelfContained>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="icon.ico">
@@ -20,3 +19,4 @@
     </EmbeddedResource>
   </ItemGroup>
 </Project>
+

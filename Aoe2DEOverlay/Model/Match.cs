@@ -1,26 +1,10 @@
-﻿using System.Collections.Generic;
+namespace Aoe2DEOverlay;
 
-namespace Aoe2DEOverlay
+public sealed class Match
 {
-    public class Match
-    {
-        public ulong? SteamId = null;
-        public uint? ProfileId = null;
-        
-        public uint Started;
-        public bool HasAI = false;
-        public string Difficulty;
-        public bool IsMultiplayer;
-        public bool IsRanked;
-        public string ServerKey;
-        public string ServerName;
-        public string GameTypeName; // Random Map, Empire Wars, Unranked
-        public string GameTypeShort; // RM, EW, UR
-        public int MapType;
-        public string MapName;
-        public List<Player> Players = new (8);
-        
-        
-        public bool IsRecordRead = true;
-    }
+    public string ReplayPath { get; init; } = "";
+    public string Identity { get; init; } = "";
+    public uint Started { get; init; }
+    public bool IsMultiplayer { get; init; }
+    public IReadOnlyList<Player> Players { get; init; } = Array.Empty<Player>();
 }
