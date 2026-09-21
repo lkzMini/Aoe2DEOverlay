@@ -49,7 +49,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(CancelEventArgs e)
     {
-        if (!_mockMode) SaveSettings();
+        SaveSettings();
         UnregisterGlobalHotkeys();
         _windowSource?.RemoveHook(WindowMessageHook);
         _statsCancellation?.Cancel();
@@ -239,6 +239,7 @@ public partial class MainWindow : Window
 
     private void SaveSettings()
     {
+        if (_mockMode) return;
         if (!double.IsNaN(Left)) _settings.X = Left;
         if (!double.IsNaN(Top)) _settings.Y = Top;
         _settings.Opacity = Opacity;

@@ -36,6 +36,7 @@ public sealed class OverlayPlayerViewModel : INotifyPropertyChanged
     public string OneVsOneRating { get => _oneVsOneRating; private set => Set(ref _oneVsOneRating, value); }
     public string TeamRating { get => _teamRating; private set => Set(ref _teamRating, value); }
     public IReadOnlyList<string> RecentCivilizations { get => _recentCivilizations; private set => Set(ref _recentCivilizations, value); }
+    public bool HasRecentCivilizations => RecentCivilizations.Count > 0;
 
     public void Apply(PlayerStatistics statistics)
     {
@@ -44,6 +45,7 @@ public sealed class OverlayPlayerViewModel : INotifyPropertyChanged
         OneVsOneRating = statistics.OneVsOneRating?.ToString() ?? "—";
         TeamRating = statistics.TeamRating?.ToString() ?? "—";
         RecentCivilizations = statistics.RecentCivilizations;
+        OnPropertyChanged(nameof(HasRecentCivilizations));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -53,4 +55,6 @@ public sealed class OverlayPlayerViewModel : INotifyPropertyChanged
         field = value;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
+
+    private void OnPropertyChanged(string propertyName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
