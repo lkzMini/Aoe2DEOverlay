@@ -32,7 +32,7 @@
                     <DockPanel Height="22" LastChildFill="True">
                         <Border DockPanel.Dock="Left" Width="23" Height="20" CornerRadius="3" Background="{Binding SlotBadgeBrush}"
                                 VerticalAlignment="Center" Margin="0,0,7,0">
-                            <TextBlock Text="{Binding Slot}" Foreground="{Binding SlotBadgeForeground}" FontSize="11" FontWeight="Bold"
+                            <TextBlock Text="{Binding Color}" Foreground="{Binding SlotBadgeForeground}" FontSize="11" FontWeight="Bold"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">

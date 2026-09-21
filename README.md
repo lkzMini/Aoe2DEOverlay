@@ -12,9 +12,9 @@ Por cada jugador detectado automáticamente en el último `.aoe2record`:
 - Elo Team Random Map;
 - las últimas cinco civilizaciones mediante emblemas PNG locales;
 - streak de leaderboard (1v1 RM y Team RM como fallback).
-- slot de partida y color real de AoE2.
+- número de jugador/color real de AoE2.
 
-En partidas por equipos el listado se agrupa por el team extraído del replay y, dentro de cada grupo, se ordena por slot. El badge `[slot]` usa el color real del jugador (Blue, Red, Green, Yellow, Cyan, Purple, Gray u Orange), sin inferir el team a partir del color.
+En partidas por equipos el listado se agrupa por el team extraído del replay y, dentro de cada grupo, se ordena por color/número de jugador de AoE2. El badge muestra ese número y usa el mismo color (1 Blue, 2 Red, 3 Green, 4 Yellow, 5 Cyan, 6 Purple, 7 Gray u 8 Orange), sin inferir el team a partir del color.
 
 Los campos no disponibles se muestran como `—`. El overlay no necesita conocer manualmente el nick del rival.
 
@@ -22,7 +22,7 @@ Los campos no disponibles se muestran como `—`. El overlay no necesita conocer
 
 Cada jugador usa una unidad compacta de dos líneas: una fila principal y una segunda línea de **24 px** para los cinco emblemas de civilización, que se colapsa por completo cuando no hay historial. El badge, nick, `1v1`, `TG` y `WR · W/L` comparten la misma fila; el nick se recorta con elipsis cuando hace falta, sin ensanchar la ventana. El ancho se ajusta al contenido dentro de un rango de **450–540 px** (antes era fijo en 570 px).
 
-Los jugadores se agrupan explícitamente por el valor de `team` extraído del replay. Cada sección muestra un header discreto `TEAM N · X players`, con una línea tenue y un gap de 5 px entre equipos; dentro de cada sección el orden siempre es por slot ascendente. No se infiere equipo por color y no se etiqueta ally/enemy porque el perfil local no se identifica de forma fiable. En FFA (`team = 0`) se usa el label neutral `PLAYERS`, no el engañoso `TEAM 0`. Un mock 4v4 de ocho jugadores muestra `TEAM 1` (slots 1/3/5/7) y `TEAM 2` (2/4/6/8) para revisar la agrupación con `--mock`.
+Los jugadores se agrupan explícitamente por el valor de `team` extraído del replay. Cada sección muestra un header discreto `TEAM N · X players`, con una línea tenue y un gap de 5 px entre equipos; dentro de cada sección el orden siempre es por color/número de jugador ascendente. No se infiere equipo por color y no se etiqueta ally/enemy porque el perfil local no se identifica de forma fiable. En FFA (`team = 0`) se usa el label neutral `PLAYERS`, no el engañoso `TEAM 0`. Un mock 4v4 de ocho jugadores muestra `TEAM 1` (colores 1/3/5/7) y `TEAM 2` (2/4/6/8) para revisar la agrupación y el mapeo de player colors con `--mock`; sus slots internos están invertidos deliberadamente para detectar una regresión que vuelva a mostrarlos u ordenarlos.
 
 ## Emblemas de civilización y streak
 
@@ -124,7 +124,7 @@ No se considera probado solo por compilar. En una partida real verificá:
 2. que nick/profile IDs/teams del log coincidan con el lobby;
 3. que el archivo no se reprocese repetidamente mientras crece;
 4. que `Ctrl+Shift+O` deje pasar el mouse al juego cuando está locked y permita arrastrar cuando está unlocked;
-5. que los slots, colores y agrupación por team coincidan con el lobby;
+5. que los números de jugador/colores y la agrupación por team coincidan con el lobby;
 6. que `Ctrl+Shift+H` no robe el foco de AoE2, `Ctrl+Shift+R` actualice una sola vez y `Ctrl+Shift+Q` cierre el proceso;
 7. que posición y estados sobrevivan al reinicio y el scaling sea legible a 1080p/4K.
 
