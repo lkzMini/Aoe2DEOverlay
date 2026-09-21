@@ -26,6 +26,58 @@
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
+        <DataTemplate x:Key="PlayerTemplate">
+            <Border Padding="9,2,9,2">
+                <StackPanel>
+                    <DockPanel Height="22" LastChildFill="True">
+                        <Border DockPanel.Dock="Left" Width="23" Height="20" CornerRadius="3" Background="{Binding SlotBadgeBrush}"
+                                VerticalAlignment="Center" Margin="0,0,7,0">
+                            <TextBlock Text="{Binding Slot}" Foreground="{Binding SlotBadgeForeground}" FontSize="11" FontWeight="Bold"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,14,0">
+                                <TextBlock Text="1v1 " Style="{StaticResource StatLabel}"/>
+                                <TextBlock Text="{Binding OneVsOneRating}" Style="{StaticResource StatValue}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,14,0">
+                                <TextBlock Text="TG " Style="{StaticResource StatLabel}"/>
+                                <TextBlock Text="{Binding TeamRating}" Style="{StaticResource StatValue}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding WinRate}" Foreground="#F0F3F6" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text=" · " Foreground="#7B8490" FontSize="13"/>
+                                <TextBlock Text="{Binding Record}" Foreground="#CFD4DB" FontSize="13"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <TextBlock Text="{Binding Name}" Foreground="#F2F4F7" FontSize="16" FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <ItemsControl ItemsSource="{Binding RecentCivilizations}" Margin="30,1,0,0" Height="18">
+                        <ItemsControl.Style>
+                            <Style TargetType="ItemsControl">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasRecentCivilizations}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ItemsControl.Style>
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#262B32" BorderBrush="#404751" BorderThickness="1" CornerRadius="3"
+                                        Margin="0,0,4,0" Padding="5,1">
+                                    <TextBlock Text="{Binding}" Foreground="#D6DBE2" FontSize="11" FontWeight="SemiBold"/>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
     </Window.Resources>
     <Border Background="#C9121418" BorderBrush="#4A5059" BorderThickness="1" CornerRadius="5">
         <Grid>
@@ -62,68 +114,30 @@
                 </StackPanel>
             </Grid>
 
-            <ItemsControl x:Name="PlayersList" Grid.Row="1">
+            <ItemsControl x:Name="TeamGroupsList" Grid.Row="1">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Padding="9,2,9,2" BorderBrush="#343940" BorderThickness="0">
+                        <Border BorderBrush="#343940" BorderThickness="0,1,0,0">
                             <Border.Style>
                                 <Style TargetType="Border">
+                                    <Setter Property="Margin" Value="0,0,0,0"/>
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ShowTeamSeparator}" Value="True">
-                                            <Setter Property="BorderThickness" Value="0,1,0,0"/>
-                                            <Setter Property="Margin" Value="0,2,0,0"/>
-                                            <Setter Property="Padding" Value="9,2,9,1"/>
+                                        <DataTrigger Binding="{Binding HasTopSpacing}" Value="False">
+                                            <Setter Property="BorderThickness" Value="0"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding HasTopSpacing}" Value="True">
+                                            <Setter Property="Margin" Value="0,5,0,0"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Border.Style>
                             <StackPanel>
-                                <DockPanel Height="22" LastChildFill="True">
-                                    <Border DockPanel.Dock="Left" Width="23" Height="20" CornerRadius="3" Background="{Binding SlotBadgeBrush}"
-                                            VerticalAlignment="Center" Margin="0,0,7,0">
-                                        <TextBlock Text="{Binding Slot}" Foreground="{Binding SlotBadgeForeground}" FontSize="11" FontWeight="Bold"
-                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,14,0">
-                                            <TextBlock Text="1v1 " Style="{StaticResource StatLabel}"/>
-                                            <TextBlock Text="{Binding OneVsOneRating}" Style="{StaticResource StatValue}"/>
-                                        </StackPanel>
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,14,0">
-                                            <TextBlock Text="TG " Style="{StaticResource StatLabel}"/>
-                                            <TextBlock Text="{Binding TeamRating}" Style="{StaticResource StatValue}"/>
-                                        </StackPanel>
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{Binding WinRate}" Foreground="#F0F3F6" FontSize="14" FontWeight="SemiBold"/>
-                                            <TextBlock Text=" · " Foreground="#7B8490" FontSize="13"/>
-                                            <TextBlock Text="{Binding Record}" Foreground="#CFD4DB" FontSize="13"/>
-                                        </StackPanel>
-                                    </StackPanel>
-                                    <TextBlock Text="{Binding Name}" Foreground="#F2F4F7" FontSize="16" FontWeight="SemiBold"
-                                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                <DockPanel Margin="9,3,9,1" Height="14" LastChildFill="False">
+                                    <TextBlock Text="{Binding Label}" Foreground="#89929D" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    <TextBlock Text=" · " Foreground="#59616C" FontSize="9" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding PlayerCountLabel}" Foreground="#717B87" FontSize="9" VerticalAlignment="Center"/>
                                 </DockPanel>
-                                <ItemsControl ItemsSource="{Binding RecentCivilizations}" Margin="30,1,0,0" Height="18">
-                                    <ItemsControl.Style>
-                                        <Style TargetType="ItemsControl">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding HasRecentCivilizations}" Value="False">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </ItemsControl.Style>
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Background="#262B32" BorderBrush="#404751" BorderThickness="1" CornerRadius="3"
-                                                    Margin="0,0,4,0" Padding="5,1">
-                                                <TextBlock Text="{Binding}" Foreground="#D6DBE2" FontSize="11" FontWeight="SemiBold"/>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                <ItemsControl ItemsSource="{Binding Players}" ItemTemplate="{StaticResource PlayerTemplate}"/>
                             </StackPanel>
                         </Border>
                     </DataTemplate>

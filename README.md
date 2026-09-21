@@ -17,9 +17,11 @@ En partidas por equipos el listado se agrupa por el team extraído del replay y,
 
 Los campos no disponibles se muestran como `—`. El overlay no necesita conocer manualmente el nick del rival.
 
-## Layout HUD compacto
+## Layout HUD compacto y equipos
 
-Cada jugador usa una unidad de dos líneas de aproximadamente **45 px**: una fila principal y una segunda línea mínima para los cinco chips de civilización, que se colapsa por completo cuando no hay historial. El badge, nick, `1v1`, `TG` y `WR · W/L` comparten la misma fila; el nick se recorta con elipsis cuando hace falta, sin ensanchar la ventana. El ancho se ajusta al contenido dentro de un rango de **450–540 px** (antes era fijo en 570 px) y solo hay una separación sutil cuando cambia el team. Un mock 4v4 de ocho jugadores permite revisar densidad, colores, orden y chips con `--mock`.
+Cada jugador usa una unidad de dos líneas de aproximadamente **45 px**: una fila principal y una segunda línea mínima para los cinco chips de civilización, que se colapsa por completo cuando no hay historial. El badge, nick, `1v1`, `TG` y `WR · W/L` comparten la misma fila; el nick se recorta con elipsis cuando hace falta, sin ensanchar la ventana. El ancho se ajusta al contenido dentro de un rango de **450–540 px** (antes era fijo en 570 px).
+
+Los jugadores se agrupan explícitamente por el valor de `team` extraído del replay. Cada sección muestra un header discreto `TEAM N · X players`, con una línea tenue y un gap de 5 px entre equipos; dentro de cada sección el orden siempre es por slot ascendente. No se infiere equipo por color y no se etiqueta ally/enemy porque el perfil local no se identifica de forma fiable. En FFA (`team = 0`) se usa el label neutral `PLAYERS`, no el engañoso `TEAM 0`. Un mock 4v4 de ocho jugadores muestra `TEAM 1` (slots 1/3/5/7) y `TEAM 2` (2/4/6/8) para revisar la agrupación con `--mock`.
 
 ## Cómo funciona
 

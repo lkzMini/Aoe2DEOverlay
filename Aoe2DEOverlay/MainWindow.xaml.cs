@@ -16,6 +16,7 @@ public partial class MainWindow : Window
     private const int RefreshHotkey = 3;
     private const int QuitHotkey = 4;
     private readonly ObservableCollection<OverlayPlayerViewModel> _players = new();
+    private readonly ObservableCollection<OverlayTeamViewModel> _teamGroups = new();
     private readonly WatchRecordService _watcher = new();
     private readonly PlayerStatsService _stats = new();
     private readonly SettingsService _settingsService = new();
@@ -31,7 +32,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         _settings = _settingsService.Load();
         ApplySavedSettings();
-        PlayersList.ItemsSource = _players;
+        TeamGroupsList.ItemsSource = _teamGroups;
         _watcher.StateChanged += SetStatus;
         _watcher.MatchDetected += MatchDetected;
         Loaded += (_, _) => Start();
@@ -75,22 +76,18 @@ public partial class MainWindow : Window
     {
         Dispatcher.Invoke(() =>
         {
-            _players.Clear();
-            int? previousTeam = null;
-            foreach (var player in match.Players.Where(player => !player.IsAi).OrderBy(player => player.Team).ThenBy(player => player.Slot))
-            {
-                var viewModel = new OverlayPlayerViewModel
+            var players = match.Players.Where(player => !player.IsAi)
+                .OrderBy(player => player.Team)
+                .ThenBy(player => player.Slot)
+                .Select(player => new OverlayPlayerViewModel
                 {
                     Name = player.Name,
                     ProfileId = player.Id,
                     Slot = player.Slot,
                     Color = player.Color,
-                    Team = player.Team,
-                    ShowTeamSeparator = previousTeam is not null && previousTeam != player.Team
-                };
-                _players.Add(viewModel);
-                previousTeam = player.Team;
-            }
+                    Team = player.Team
+                });
+            SetPlayerGroups(players);
             StatusText.Visibility = Visibility.Collapsed;
         });
 
@@ -135,7 +132,11 @@ public partial class MainWindow : Window
     {
         StatusText.Text = status;
         StatusText.Visibility = Visibility.Visible;
-        if (status.StartsWith("Reading", StringComparison.Ordinal)) _players.Clear();
+        if (status.StartsWith("Reading", StringComparison.Ordinal))
+        {
+            _players.Clear();
+            _teamGroups.Clear();
+        }
     });
 
     private void ApplySavedSettings()
@@ -253,30 +254,45 @@ public partial class MainWindow : Window
         var samples = new[]
         {
             new { Name = "Gualord", ProfileId = 1, Slot = 1, Color = 1, Team = 1, OneVsOne = 939, TeamRating = 1039, Wins = 70, Losses = 65, Civs = new[] { "PER", "VIK", "HUN", "MAY", "BER" } },
-            new { Name = "Hera", ProfileId = 2, Slot = 2, Color = 2, Team = 1, OneVsOne = 2612, TeamRating = 1548, Wins = 124, Losses = 61, Civs = new[] { "MAY", "MON", "HUN", "VIK", "CHI" } },
+            new { Name = "Hera", ProfileId = 2, Slot = 2, Color = 2, Team = 2, OneVsOne = 2612, TeamRating = 1548, Wins = 124, Losses = 61, Civs = new[] { "MAY", "MON", "HUN", "VIK", "CHI" } },
             new { Name = "Liereyy", ProfileId = 3, Slot = 3, Color = 3, Team = 1, OneVsOne = 2580, TeamRating = 1602, Wins = 91, Losses = 58, Civs = new[] { "ETH", "MAL", "MON", "HIN", "FRA" } },
-            new { Name = "Yo", ProfileId = 4, Slot = 4, Color = 4, Team = 1, OneVsOne = 1784, TeamRating = 1640, Wins = 88, Losses = 72, Civs = new[] { "BRI", "JAP", "SAR", "BYZ", "TEU" } },
-            new { Name = "Viper", ProfileId = 5, Slot = 5, Color = 5, Team = 2, OneVsOne = 2475, TeamRating = 1778, Wins = 118, Losses = 54, Civs = new[] { "NOR", "POL", "BUR", "INC", "AZT" } },
+            new { Name = "Yo", ProfileId = 4, Slot = 4, Color = 4, Team = 2, OneVsOne = 1784, TeamRating = 1640, Wins = 88, Losses = 72, Civs = new[] { "BRI", "JAP", "SAR", "BYZ", "TEU" } },
+            new { Name = "Viper", ProfileId = 5, Slot = 5, Color = 5, Team = 1, OneVsOne = 2475, TeamRating = 1778, Wins = 118, Losses = 54, Civs = new[] { "NOR", "POL", "BUR", "INC", "AZT" } },
             new { Name = "TaToH", ProfileId = 6, Slot = 6, Color = 6, Team = 2, OneVsOne = 2301, TeamRating = 1711, Wins = 109, Losses = 66, Civs = new[] { "SPA", "POR", "TUR", "KOR", "SLA" } },
-            new { Name = "Vinchester", ProfileId = 7, Slot = 7, Color = 7, Team = 2, OneVsOne = 2148, TeamRating = 1682, Wins = 97, Losses = 69, Civs = new[] { "RUS", "MAG", "LIT", "BUL", "CUM" } },
+            new { Name = "Vinchester", ProfileId = 7, Slot = 7, Color = 7, Team = 1, OneVsOne = 2148, TeamRating = 1682, Wins = 97, Losses = 69, Civs = new[] { "RUS", "MAG", "LIT", "BUL", "CUM" } },
             new { Name = "MbL", ProfileId = 8, Slot = 8, Color = 8, Team = 2, OneVsOne = 2056, TeamRating = 1594, Wins = 82, Losses = 73, Civs = new[] { "GOT", "CEL", "FRA", "HUN", "MAL" } }
         };
-        int? previousTeam = null;
+        var players = new List<OverlayPlayerViewModel>();
         foreach (var sample in samples)
         {
             var player = new OverlayPlayerViewModel
             {
-                Name = sample.Name, ProfileId = sample.ProfileId, Slot = sample.Slot, Color = sample.Color, Team = sample.Team,
-                ShowTeamSeparator = previousTeam is not null && previousTeam != sample.Team
+                Name = sample.Name, ProfileId = sample.ProfileId, Slot = sample.Slot, Color = sample.Color, Team = sample.Team
             };
             player.Apply(new PlayerStatistics
             {
                 ProfileId = sample.ProfileId, OneVsOneRating = sample.OneVsOne, TeamRating = sample.TeamRating,
                 OneVsOneWins = sample.Wins, OneVsOneLosses = sample.Losses, RecentCivilizations = sample.Civs
             });
-            _players.Add(player);
-            previousTeam = sample.Team;
+            players.Add(player);
         }
+        SetPlayerGroups(players);
         StatusText.Visibility = Visibility.Collapsed;
+    }
+
+    private void SetPlayerGroups(IEnumerable<OverlayPlayerViewModel> players)
+    {
+        _players.Clear();
+        _teamGroups.Clear();
+        foreach (var team in players.OrderBy(player => player.Team).ThenBy(player => player.Slot).GroupBy(player => player.Team))
+        {
+            var group = new OverlayTeamViewModel(team.Key, _teamGroups.Count > 0);
+            foreach (var player in team)
+            {
+                _players.Add(player);
+                group.Players.Add(player);
+            }
+            _teamGroups.Add(group);
+        }
     }
 }
