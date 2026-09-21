@@ -57,9 +57,12 @@ static async Task<int> RunCacheProbeAsync()
     var second = (await service.GetAsync(new[] { player }, forceRefresh: true))[42];
     var third = (await service.GetAsync(new[] { player }, forceRefresh: true))[42];
     var passed = first.OneVsOneRating == 1500 && second.OneVsOneRating == 1500 && third.OneVsOneRating == 1500 &&
-                 first.RecentCivilizations.SequenceEqual(new[] { "MAY" }) &&
-                 second.RecentCivilizations.SequenceEqual(new[] { "MAY" }) &&
-                 third.RecentCivilizations.SequenceEqual(new[] { "MAY" });
+                 first.OneVsOneStreak == 5 && second.OneVsOneStreak == 5 && third.OneVsOneStreak == 5 &&
+                 first.TeamStreak == -2 && second.TeamStreak == -2 && third.TeamStreak == -2 &&
+                 first.DisplayStreak == 5 && second.DisplayStreak == 5 && third.DisplayStreak == 5 &&
+                 first.RecentCivilizations.SequenceEqual(new[] { "Mayans" }) &&
+                 second.RecentCivilizations.SequenceEqual(new[] { "Mayans" }) &&
+                 third.RecentCivilizations.SequenceEqual(new[] { "Mayans" });
     Console.WriteLine($"Partial-response stale cache probe: {(passed ? "PASS" : "FAIL")}");
     return passed ? 0 : 1;
 }
@@ -76,7 +79,7 @@ sealed class PartialFailureHandler : HttpMessageHandler
             _ratingRequests++;
             if (_ratingRequests == 1)
                 return Task.FromResult(JsonResponse(HttpStatusCode.OK,
-                    "{\"statGroups\":[{\"id\":7,\"members\":[{\"profile_id\":42}]}],\"leaderboardStats\":[{\"statgroup_id\":7,\"leaderboard_id\":3,\"wins\":6,\"losses\":4,\"drops\":0,\"rating\":1500}]}"));
+                    "{\"statGroups\":[{\"id\":7,\"members\":[{\"profile_id\":42}]}],\"leaderboardStats\":[{\"statgroup_id\":7,\"leaderboard_id\":3,\"wins\":6,\"losses\":4,\"drops\":0,\"rating\":1500,\"streak\":5},{\"statgroup_id\":7,\"leaderboard_id\":4,\"wins\":2,\"losses\":3,\"drops\":0,\"rating\":1300,\"streak\":-2}]}"));
             if (_ratingRequests == 2)
                 return Task.FromResult(JsonResponse(HttpStatusCode.OK, "{\"statGroups\":[],\"leaderboardStats\":[]}"));
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ThrowingContent() });

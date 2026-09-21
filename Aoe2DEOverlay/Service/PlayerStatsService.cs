@@ -103,7 +103,9 @@ public sealed class PlayerStatsService : IDisposable
         fresh.OneVsOneLosses is null && stale.OneVsOneLosses is not null ||
         fresh.TeamRating is null && stale.TeamRating is not null ||
         fresh.TeamWins is null && stale.TeamWins is not null ||
-        fresh.TeamLosses is null && stale.TeamLosses is not null;
+        fresh.TeamLosses is null && stale.TeamLosses is not null ||
+        fresh.OneVsOneStreak is null && stale.OneVsOneStreak is not null ||
+        fresh.TeamStreak is null && stale.TeamStreak is not null;
 
     private async Task<Dictionary<int, PlayerStatistics>> FetchRatingsAsync(IReadOnlyCollection<int> profileIds, CancellationToken cancellationToken)
     {
@@ -228,6 +230,8 @@ public sealed class PlayerStatsService : IDisposable
             TeamRating = now - RatingsFetchedAt <= StaleFor ? Statistics.TeamRating : null,
             TeamWins = now - RatingsFetchedAt <= StaleFor ? Statistics.TeamWins : null,
             TeamLosses = now - RatingsFetchedAt <= StaleFor ? Statistics.TeamLosses : null,
+            OneVsOneStreak = now - RatingsFetchedAt <= StaleFor ? Statistics.OneVsOneStreak : null,
+            TeamStreak = now - RatingsFetchedAt <= StaleFor ? Statistics.TeamStreak : null,
             RecentCivilizations = now - HistoryFetchedAt <= StaleFor ? Statistics.RecentCivilizations : Array.Empty<string>()
         };
     }
