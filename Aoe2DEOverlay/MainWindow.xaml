@@ -27,7 +27,7 @@
                 <RowDefinition Height="28"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <Grid x:Name="DragArea" Grid.Row="0" Margin="10,0,7,0" MouseLeftButtonDown="DragWhenUnlocked">
+            <Grid x:Name="DragArea" Grid.Row="0" Margin="10,0,7,0" Background="Transparent" MouseLeftButtonDown="DragWhenUnlocked">
                 <TextBlock x:Name="StatusText" Text="AoE2 · waiting for match" VerticalAlignment="Center"
                            Foreground="#C8CDD5" FontSize="12"/>
                 <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
