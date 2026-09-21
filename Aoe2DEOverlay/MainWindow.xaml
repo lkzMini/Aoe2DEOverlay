@@ -1,34 +1,16 @@
-﻿<Window x:Class="Aoe2DEOverlay.MainWindow"
+<Window x:Class="Aoe2DEOverlay.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:view="clr-namespace:Aoe2DEOverlay.View"
-        mc:Ignorable="d"
-        Title="Aoe2DEOverlay"
+        Title="AoE2 Minimal Overlay"
         Background="Transparent"
         AllowsTransparency="True"
         WindowStyle="None"
-        WindowState="Maximized" 
+        Width="380"
+        SizeToContent="Height"
         ResizeMode="NoResize"
         Topmost="True"
-        >
-    <Grid>
-        <view:StateView x:Name="StateView"></view:StateView>
-        <StackPanel Name="ServerPanel" Margin="0">
-            <Border Name="ServerBorder" BorderBrush="#80FFFFFF" BorderThickness="1" CornerRadius="4"  Background="#BB000000" Padding="2, 2, 2, 4">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <Label Name="ServerLabel" Foreground="White" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5, 0, 5, 0" Padding="0" />
-                </StackPanel>
-            </Border>
-        </StackPanel>
-        <StackPanel Name="UpdatePanel" Margin="0">
-            <Border Name="UpdateBorder" BorderBrush="#80FFFFFF" BorderThickness="1" CornerRadius="4"  Background="#BB000000" Padding="2, 2, 2, 4">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <Label Name="UpdateLabel" Foreground="White" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="5, 0, 5, 0" Padding="0" />
-                </StackPanel>
-            </Border>
-        </StackPanel>
-        <view:SplashView x:Name="SplashView"></view:SplashView>
-    </Grid>
+        ShowInTaskbar="False">
+    <Border Background="#CC111318" BorderBrush="#363B43" BorderThickness="1" CornerRadius="5" Padding="12">
+        <TextBlock Text="AoE2 · waiting for match" Foreground="#C8CDD5" FontFamily="Segoe UI" FontSize="12" />
+    </Border>
 </Window>

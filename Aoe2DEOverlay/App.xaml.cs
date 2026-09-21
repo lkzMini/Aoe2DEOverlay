@@ -1,27 +1,21 @@
-﻿using System.Threading;
+using System.Threading;
 using System.Windows;
 
-namespace Aoe2DEOverlay
+namespace Aoe2DEOverlay;
+
+public partial class App : Application
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
-    public partial class App : Application
+    private Mutex? _mutex;
+
+    protected override void OnStartup(StartupEventArgs e)
     {
-        private static Mutex _mutex = null;
-        protected override void OnStartup(StartupEventArgs e)
+        _mutex = new Mutex(true, "AoE2MinimalOverlay", out var createdNew);
+        if (!createdNew)
         {
-            bool createdNew;
+            Shutdown();
+            return;
+        }
 
-            _mutex = new Mutex(true, Metadata.AppName, out createdNew);
-
-            if (!createdNew)
-            {
-                //app is already running! Exiting the application  
-                Application.Current.Shutdown();
-            }
-
-            base.OnStartup(e);
-        }          
+        base.OnStartup(e);
     }
 }
